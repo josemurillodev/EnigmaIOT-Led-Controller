@@ -16,7 +16,7 @@
 #endif
 
 #include <EnigmaIOTjsonController.h>
-#define CONTROLLER_CLASS_NAME LedController
+#define LED_CONTROLLER LedController
 static const char* CONTROLLER_NAME = "LED controller";
 
 #if SUPPORT_HA_DISCOVERY    
@@ -30,7 +30,7 @@ static const char* CONTROLLER_NAME = "LED controller";
 #define _LED_ON LOW
 #define _LED_OFF !_LED_ON
 
-class CONTROLLER_CLASS_NAME : EnigmaIOTjsonController {
+class LED_CONTROLLER : EnigmaIOTjsonController {
 protected:
 	// --------------------------------------------------
 	// add all parameters that your project needs here
@@ -44,7 +44,7 @@ public:
 
 	void loop ();
 
-	~CONTROLLER_CLASS_NAME ();
+	~LED_CONTROLLER ();
 
 	/**
 	 * @brief Called when wifi manager starts config portal

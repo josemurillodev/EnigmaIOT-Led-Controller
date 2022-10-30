@@ -34,6 +34,9 @@
 #include <Update.h>
 #include <driver/adc.h>
 #include "esp_wifi.h"
+// #include "soc/soc.h"           // Disable brownout problems
+// #include "soc/rtc_cntl_reg.h"  // Disable brownout problems
+// #include "soc/adc_channel.h"
 #endif
 #include <ArduinoJson.h>
 #include <Curve25519.h>
@@ -47,6 +50,10 @@
 #ifndef LED_BUILTIN
 #define LED_BUILTIN 2 // ESP32 boards normally have a LED in GPIO3 or GPIO5
 #endif // !LED_BUILTIN
+
+// #ifdef ESP8266
+// ADC_MODE (ADC_VCC);
+// #endif
 
 // If you do need serial for your project you must disable serial debug by commenting next line
 #define USE_SERIAL // Don't forget to set DEBUG_LEVEL to NONE if serial is disabled
@@ -118,7 +125,7 @@ void setup () {
         return;
     }
 
-	controller = (EnigmaIOTjsonController*)new CONTROLLER_CLASS_NAME (); // Use your class name here
+	controller = (EnigmaIOTjsonController*)new LED_CONTROLLER (); // Use your class name here
 
 	//EnigmaIOTNode.setLed (BLUE_LED); // Set communication LED
 	EnigmaIOTNode.setResetPin (RESET_PIN); // Set reset pin

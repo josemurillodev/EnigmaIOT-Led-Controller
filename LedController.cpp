@@ -4,6 +4,7 @@
 
 #include <functional>
 #include "LedController.h"
+#include "LedStripConfig.h"
 
 using namespace std;
 using namespace placeholders;
@@ -18,11 +19,12 @@ constexpr auto CONFIG_FILE = "/customconf.json"; ///< @brief Custom configuratio
 const char* ledKey = "led";
 const char* commandKey = "cmd";
 
+LedStripConfig ledstrip;
 
-bool CONTROLLER_CLASS_NAME::processRxCommand (const uint8_t* address, const uint8_t* buffer, uint8_t length, nodeMessageType_t command, nodePayloadEncoding_t payloadEncoding) {
+
+bool LED_CONTROLLER::processRxCommand (const uint8_t* address, const uint8_t* buffer, uint8_t length, nodeMessageType_t command, nodePayloadEncoding_t payloadEncoding) {
 	// Process incoming messages here
 	// They are normally encoded as MsgPack so you can confert them to JSON very easily
-
 	// Check command type
 	if (command != nodeMessageType_t::DOWNSTREAM_DATA_GET && command != nodeMessageType_t::DOWNSTREAM_DATA_SET) {
 		DEBUG_WARN ("Wrong message type");
@@ -102,39 +104,48 @@ bool CONTROLLER_CLASS_NAME::processRxCommand (const uint8_t* address, const uint
 	return true;
 }
 
-bool CONTROLLER_CLASS_NAME::sendLedStatus () {
-	const size_t capacity = JSON_OBJECT_SIZE (2);
+bool LED_CONTROLLER::sendLedStatus () {
+	const size_t capacity = JSON_OBJECT_SIZE (8);
 	DynamicJsonDocument json (capacity);
 
-	json[commandKey] = ledKey;
-    json[ledKey] = led ? _LED_ON : _LED_OFF;
+	char gwAddress[ENIGMAIOT_ADDR_LEN * 3];
+  json["nodeAddress"] = mac2str (enigmaIotNode->getNode()->getMacAddress(), gwAddress);
+  json["nodeName"] = enigmaIotNode->getNode()->getNodeName();
+  json["ledcount"] = ledstrip.getLeds();
+  json["status"] = ledstrip.ledstatus;
+  json["palette"] = (uint8_t)ledstrip.ledpalette;
+  // json["bpm"] = ledstrip.bpm;
+  JsonObject hsv_r = json.createNestedObject("hsv");
+  hsv_r["h"] = ledstrip.hue;
+  hsv_r["s"] = ledstrip.saturation;
+  hsv_r["v"] = ledstrip.value;
 
 	return sendJson (json);
 }
 
 
-bool CONTROLLER_CLASS_NAME::sendCommandResp (const char* command, bool result) {
+bool LED_CONTROLLER::sendCommandResp (const char* command, bool result) {
 	// Respond to command with a result: true if successful, false if failed 
 	return true;
 }
 
-void CONTROLLER_CLASS_NAME::connectInform () {
+void LED_CONTROLLER::connectInform () {
 
 #if SUPPORT_HA_DISCOVERY    
     // Register every HAEntity discovery function here. As many as you need
-    addHACall (std::bind (&CONTROLLER_CLASS_NAME::buildHADiscovery, this));
-    addHACall (std::bind (&CONTROLLER_CLASS_NAME::sendLedStatus, this));
+    addHACall (std::bind (&LED_CONTROLLER::buildHADiscovery, this));
+    addHACall (std::bind (&LED_CONTROLLER::sendLedStatus, this));
 #endif
 
     EnigmaIOTjsonController::connectInform ();
 }
 
-void CONTROLLER_CLASS_NAME::setup (EnigmaIOTNodeClass* node, void* data) {
+void LED_CONTROLLER::setup (EnigmaIOTNodeClass* node, void* data) {
 	enigmaIotNode = node;
 
 	// You do node setup here. Use it as it was the normal setup() Arduino function
-	pinMode (LED_PIN, OUTPUT);
-	digitalWrite (LED_PIN, _LED_ON);
+
+  ledstrip.initLedStrip();
 
 	// Send a 'hello' message when initalizing is finished
     sendStartAnouncement ();
@@ -146,40 +157,47 @@ void CONTROLLER_CLASS_NAME::setup (EnigmaIOTNodeClass* node, void* data) {
 	// If your node should sleep after sending data do all remaining tasks here
 }
 
-void CONTROLLER_CLASS_NAME::loop () {
+void LED_CONTROLLER::loop () {
+	static time_t clock;
+	clock = EnigmaIOTNode.clock ();
 
+	if (EnigmaIOTNode.hasClockSync () && EnigmaIOTNode.isRegistered ()) {
+		ledstrip.update(clock);
+	} else {
+		ledstrip.update(millis());
+	}
 	// If your node stays allways awake do your periodic task here
-	digitalWrite (LED_PIN, led);
+	// digitalWrite (LED_PIN, led);
 }
 
-CONTROLLER_CLASS_NAME::~CONTROLLER_CLASS_NAME () {
+LED_CONTROLLER::~LED_CONTROLLER () {
 	// It your class uses dynamic data free it up here
 	// This is normally not needed but it is a good practice
 }
 
-void CONTROLLER_CLASS_NAME::configManagerStart () {
+void LED_CONTROLLER::configManagerStart () {
 	DEBUG_INFO ("==== CCost Controller Configuration start ====");
 	// If you need to add custom configuration parameters do it here
 }
 
-void CONTROLLER_CLASS_NAME::configManagerExit (bool status) {
+void LED_CONTROLLER::configManagerExit (bool status) {
 	DEBUG_INFO ("==== CCost Controller Configuration result ====");
 	// You can read configuration paramenter values here
 }
 
-bool CONTROLLER_CLASS_NAME::loadConfig () {
+bool LED_CONTROLLER::loadConfig () {
 	// If you need to read custom configuration data do it here
 	return true;
 }
 
-bool CONTROLLER_CLASS_NAME::saveConfig () {
+bool LED_CONTROLLER::saveConfig () {
 	// If you need to save custom configuration data do it here
 	return true;
 }
 
 #if SUPPORT_HA_DISCOVERY   
 // Repeat this method for every entity
-void CONTROLLER_CLASS_NAME::buildHADiscovery () {
+void LED_CONTROLLER::buildHADiscovery () {
     // Select corresponding HAEntiny type
     HASwitch* haEntity = new HASwitch ();
 

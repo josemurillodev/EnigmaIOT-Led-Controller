@@ -10,7 +10,7 @@
 #define DATA_PIN    2
 #define LED_TYPE    WS2812B
 #define COLOR_ORDER GRB
-#define NUM_LEDS    300
+#define NUM_LEDS    300 // 300
 #define BRIGHTNESS  255
 
 #define qsubd(x, b)  ((x>b)?b:0)
@@ -31,7 +31,7 @@
 #define SPARKING 120
 
 CRGB leds[NUM_LEDS];
-CLEDController *controller;
+CLEDController *ledcontroller;
  
 uint32_t framedelay = 24;
 
@@ -47,22 +47,22 @@ void LedStripConfig::initLedStrip() {
   FastLED.setBrightness(BRIGHTNESS);
   // FastLED.setTemperature(Tungsten40W);
 
-  controller = &FastLED.addLeds<LED_TYPE, DATA_PIN, COLOR_ORDER>(leds, NUM_LEDS);
+  ledcontroller = &FastLED.addLeds<LED_TYPE, DATA_PIN, COLOR_ORDER>(leds, NUM_LEDS);
 
   // set_max_power_in_volts_and_milliamps(5, 2000);
-  controller->init();
-  controller->setCorrection(TypicalLEDStrip);
-  controller->setDither(BRIGHTNESS < 255);
-  controller->showLeds(0);
-  controller->setLeds(leds, _leds);
+  ledcontroller->init();
+  ledcontroller->setCorrection(TypicalLEDStrip);
+  ledcontroller->setDither(BRIGHTNESS < 255);
+  ledcontroller->showLeds(255);
+  ledcontroller->setLeds(leds, _leds);
 }
 
 void LedStripConfig::writeRgb(uint8_t r, uint8_t g, uint8_t b) {
   CRGB color = CRGB(r, g, b);
-  fill_solid(controller->leds(), _leds, color);
-  // controller->showColor(color, calculate_max_brightness_for_power_vmA(controller->leds(), _leds, BRIGHTNESS, 5, 1000));
-  // controller->showColor(color, _leds, calculate_max_brightness_for_power_mW(value * 255, 5 * 1000));
-  // controller->showColor(color);
+  fill_solid(ledcontroller->leds(), _leds, color);
+  // ledcontroller->showColor(color, calculate_max_brightness_for_power_vmA(ledcontroller->leds(), _leds, BRIGHTNESS, 5, 1000));
+  // ledcontroller->showColor(color, _leds, calculate_max_brightness_for_power_mW(value * 255, 5 * 1000));
+  // ledcontroller->showColor(color);
 }
 
 void LedStripConfig::setRgb(uint8_t r, uint8_t g, uint8_t b) {
@@ -105,8 +105,8 @@ double LedStripConfig::getCurrentStep(double multiplier) {
 void LedStripConfig::setLeds(uint16_t count) {
   if (count <= NUM_LEDS) {
     _leds = count;
-    controller->showLeds(0);
-    controller->setLeds(leds, _leds);
+    ledcontroller->showLeds(0);
+    ledcontroller->setLeds(leds, _leds);
   }
 }
 
@@ -114,14 +114,18 @@ uint16_t LedStripConfig::getLeds() {
   return _leds;
 }
 
-void LedStripConfig::update(unsigned long time) {
+void LedStripConfig::update(time_t time) {
   _globaltime = time;
-  EVERY_N_MILLIS(25) {
+	static time_t lastSensorData;
+	static const time_t SENSOR_PERIOD = 25;
+	if (_globaltime - lastSensorData > SENSOR_PERIOD) {
+		lastSensorData = _globaltime;
     _deltams = _globaltime - _prevms;
     _prevms = _globaltime;
+    // Serial.println(ledstatus);
     if (ledstatus == LS_OFF || !isOn) {
       writeRgb(0, 0, 0);
-      controller->showLeds(value * 255);
+      ledcontroller->showLeds(value * 255);
       return;
     }
     if (ledstatus == LS_SOLID) {
@@ -144,6 +148,7 @@ void LedStripConfig::update(unsigned long time) {
       double beat = ((getCurrentStep() + 1.0) * (0.8) / (2.0)) + 0.1;
       writeHsv(hue, saturation, beat * value);
     }
+    else if (ledstatus == LS_GRADIENT) { gradient(); }
     else if (ledstatus == LS_WAVE) { waveAnim(ledpalette); }
     else if (ledstatus == LS_HEARTHBEAT) { heartBeat(ledpalette); }
     else if (ledstatus == LS_CONFETTI) { confetti(ledpalette); }
@@ -153,13 +158,12 @@ void LedStripConfig::update(unsigned long time) {
     else if (ledstatus == LS_RIPPLE) { ripple(ledpalette); }
     else if (ledstatus == LS_FLASH) { flash(ledpalette); }
     else if (ledstatus == LS_PRIDE) { pride(); }
-    else if (ledstatus == LS_GRADIENT) { gradient(); }
     else if (ledstatus == LS_SPARKLES) { sparkles(); }
     else if (ledstatus == LS_CYLON) { cylon(); }
     else if (ledstatus == LS_DISCOBALL) { discoBall(); }
     else if (ledstatus == LS_WIZARD) { wizard(); }
     else if (ledstatus == LS_CHESS) { chess(); }
-    else if (ledstatus == LS_PACIFICA) { pacifica(); }
+    // else if (ledstatus == LS_PACIFICA) { pacifica(); }
 
     if ((ledstatus == LS_SUCCESS
       || ledstatus == LS_INFO
@@ -169,13 +173,13 @@ void LedStripConfig::update(unsigned long time) {
       setStatus(_prevStatus);
     }
 
-    uint8_t bri = calculate_max_brightness_for_power_vmA(controller->leds(), _leds, BRIGHTNESS, 5, 5000);
+    uint8_t bri = calculate_max_brightness_for_power_vmA(ledcontroller->leds(), _leds, BRIGHTNESS, 5, 5000);
 
-    controller->showLeds(bri);
+    ledcontroller->showLeds(bri);
   }
 }
 
-void LedStripConfig::syncTime(unsigned long time) {
+void LedStripConfig::syncTime(int64_t time) {
   _globaltime = time;
   _lastUpdated = _globaltime;
 }
@@ -190,7 +194,7 @@ void LedStripConfig::setStatus(ls_Status s) {
   _lastUpdated = millis();
 }
 
-void LedStripConfig::setStatus(ls_Status s, unsigned long time) {
+void LedStripConfig::setStatus(ls_Status s, int64_t time) {
   Serial.print("setStatus ");
   Serial.println(s);
   if (isTemporal(s) && !isTemporal(ledstatus)) {
@@ -201,8 +205,16 @@ void LedStripConfig::setStatus(ls_Status s, unsigned long time) {
   _lastUpdated = _globaltime;
 }
 
-uint8_t LedStripConfig::lerp(uint8_t a, uint8_t b, double u) {
-  return (1-u) * a + u * b;
+void LedStripConfig::gradient(){ 
+  uint8_t starthue = 128.0 + 128 * getCurrentStep(0.1);
+  uint8_t endhue = 128.0 + 128 * getCurrentStep(0.06);
+
+  if (starthue < endhue){
+    // If we don't have this, the colour fill will flip around.
+    fill_gradient(leds, _leds, CHSV(starthue,255,value * 255), CHSV(endhue,255,value * 255), FORWARD_HUES);
+  } else{
+    fill_gradient(leds, _leds, CHSV(starthue,255,value * 255), CHSV(endhue,255,value * 255), BACKWARD_HUES);
+  }
 }
 
 void LedStripConfig::pride() {
@@ -241,18 +253,6 @@ void LedStripConfig::waveAnim(ls_Palette pindex) {
   for(int i = 0; i < _leds; i++){
     uint8_t step = beat + (i * 10);
     leds[i] = ColorFromPalette(paletteArray[pindex], step, value * 255, LINEARBLEND);
-  }
-}
-
-void LedStripConfig::gradient(){ 
-  uint8_t starthue = 128.0 + 128 * getCurrentStep(0.1);
-  uint8_t endhue = 128.0 + 128 * getCurrentStep(0.06);
-
-  if (starthue < endhue){
-    // If we don't have this, the colour fill will flip around.
-    fill_gradient(leds, _leds, CHSV(starthue,255,value * 255), CHSV(endhue,255,value * 255), FORWARD_HUES);
-  } else{
-    fill_gradient(leds, _leds, CHSV(starthue,255,value * 255), CHSV(endhue,255,value * 255), BACKWARD_HUES);
   }
 }
 
@@ -498,81 +498,81 @@ void LedStripConfig::chess(){
   }
 }
 
-// Pacifica
+// // Pacifica
 
-void LedStripConfig::pacifica() {
-  // Increment the four "color index start" counters, one for each wave layer.
-  // Each is incremented at a different speed, and the speeds vary over time.
-  static uint16_t sCIStart1, sCIStart2, sCIStart3, sCIStart4;
-  static uint32_t sLastms = 0;
-  uint32_t ms = _globaltime;
-  uint32_t deltams = ms - sLastms;
-  sLastms = ms;
-  uint16_t speedfactor1 = beatsin16(3, 179, 269);
-  uint16_t speedfactor2 = beatsin16(4, 179, 269);
-  uint32_t deltams1 = (deltams * speedfactor1) / 256;
-  uint32_t deltams2 = (deltams * speedfactor2) / 256;
-  uint32_t deltams21 = (deltams1 + deltams2) / 2;
-  sCIStart1 += (deltams1 * beatsin88(1011,10,13));
-  sCIStart2 -= (deltams21 * beatsin88(777,8,11));
-  sCIStart3 -= (deltams1 * beatsin88(501,5,7));
-  sCIStart4 -= (deltams2 * beatsin88(257,4,6));
+// void LedStripConfig::pacifica() {
+//   // Increment the four "color index start" counters, one for each wave layer.
+//   // Each is incremented at a different speed, and the speeds vary over time.
+//   static uint16_t sCIStart1, sCIStart2, sCIStart3, sCIStart4;
+//   static uint32_t sLastms = 0;
+//   uint32_t ms = _globaltime;
+//   uint32_t deltams = ms - sLastms;
+//   sLastms = ms;
+//   uint16_t speedfactor1 = beatsin16(3, 179, 269);
+//   uint16_t speedfactor2 = beatsin16(4, 179, 269);
+//   uint32_t deltams1 = (deltams * speedfactor1) / 256;
+//   uint32_t deltams2 = (deltams * speedfactor2) / 256;
+//   uint32_t deltams21 = (deltams1 + deltams2) / 2;
+//   sCIStart1 += (deltams1 * beatsin88(1011,10,13));
+//   sCIStart2 -= (deltams21 * beatsin88(777,8,11));
+//   sCIStart3 -= (deltams1 * beatsin88(501,5,7));
+//   sCIStart4 -= (deltams2 * beatsin88(257,4,6));
 
-  // Clear out the LED array to a dim background blue-green
-  fill_solid( leds, _leds, CRGB( 2, 6, 10));
+//   // Clear out the LED array to a dim background blue-green
+//   fill_solid( leds, _leds, CRGB( 2, 6, 10));
 
-  // Render each of four layers, with different scales and speeds, that vary over time
-  pacifica_one_layer( pacifica_palette_1, sCIStart1, beatsin16( 3, 11 * 256, 14 * 256), beatsin8( 10, 70, 130), 0-beat16( 301) );
-  pacifica_one_layer( pacifica_palette_2, sCIStart2, beatsin16( 4,  6 * 256,  9 * 256), beatsin8( 17, 40,  80), beat16( 401) );
-  pacifica_one_layer( pacifica_palette_3, sCIStart3, 6 * 256, beatsin8( 9, 10,38), 0-beat16(503));
-  pacifica_one_layer( pacifica_palette_3, sCIStart4, 5 * 256, beatsin8( 8, 10,28), beat16(601));
+//   // Render each of four layers, with different scales and speeds, that vary over time
+//   pacifica_one_layer( pacifica_palette_1, sCIStart1, beatsin16( 3, 11 * 256, 14 * 256), beatsin8( 10, 70, 130), 0-beat16( 301) );
+//   pacifica_one_layer( pacifica_palette_2, sCIStart2, beatsin16( 4,  6 * 256,  9 * 256), beatsin8( 17, 40,  80), beat16( 401) );
+//   pacifica_one_layer( pacifica_palette_3, sCIStart3, 6 * 256, beatsin8( 9, 10,38), 0-beat16(503));
+//   pacifica_one_layer( pacifica_palette_3, sCIStart4, 5 * 256, beatsin8( 8, 10,28), beat16(601));
 
-  // Add brighter 'whitecaps' where the waves lines up more
-  pacifica_add_whitecaps();
+//   // Add brighter 'whitecaps' where the waves lines up more
+//   pacifica_add_whitecaps();
 
-  // Deepen the blues and greens a bit
-  pacifica_deepen_colors();
-}
+//   // Deepen the blues and greens a bit
+//   pacifica_deepen_colors();
+// }
 
-// Add one layer of waves into the led array
-void LedStripConfig::pacifica_one_layer(CRGBPalette16& p, uint16_t cistart, uint16_t wavescale, uint8_t bri, uint16_t ioff) {
-  uint16_t ci = cistart;
-  uint16_t waveangle = ioff;
-  uint16_t wavescale_half = (wavescale / 2) + 20;
-  for(uint16_t i = 0; i < _leds; i++) {
-    waveangle += 250;
-    uint16_t s16 = sin16(waveangle) + 32768;
-    uint16_t cs = scale16(s16 , wavescale_half) + wavescale_half;
-    ci += cs;
-    uint16_t sindex16 = sin16(ci) + 32768;
-    uint8_t sindex8 = scale16(sindex16, 240);
-    CRGB c = ColorFromPalette(p, sindex8, bri * value, LINEARBLEND);
-    leds[i] += c;
-  }
-}
+// // Add one layer of waves into the led array
+// void LedStripConfig::pacifica_one_layer(CRGBPalette16& p, uint16_t cistart, uint16_t wavescale, uint8_t bri, uint16_t ioff) {
+//   uint16_t ci = cistart;
+//   uint16_t waveangle = ioff;
+//   uint16_t wavescale_half = (wavescale / 2) + 20;
+//   for(uint16_t i = 0; i < _leds; i++) {
+//     waveangle += 250;
+//     uint16_t s16 = sin16(waveangle) + 32768;
+//     uint16_t cs = scale16(s16 , wavescale_half) + wavescale_half;
+//     ci += cs;
+//     uint16_t sindex16 = sin16(ci) + 32768;
+//     uint8_t sindex8 = scale16(sindex16, 240);
+//     CRGB c = ColorFromPalette(p, sindex8, bri * value, LINEARBLEND);
+//     leds[i] += c;
+//   }
+// }
 
-// Add extra 'white' to areas where the four layers of light have lined up brightly
-void LedStripConfig::pacifica_add_whitecaps() {
-  uint8_t basethreshold = beatsin8(9, 55, 65);
-  uint8_t wave = beat8(7);
+// // Add extra 'white' to areas where the four layers of light have lined up brightly
+// void LedStripConfig::pacifica_add_whitecaps() {
+//   uint8_t basethreshold = beatsin8(9, 55, 65);
+//   uint8_t wave = beat8(7);
   
-  for(uint16_t i = 0; i < _leds; i++) {
-    uint8_t threshold = scale8(sin8(wave), 20) + basethreshold;
-    wave += 7;
-    uint8_t l = leds[i].getAverageLight();
-    if(l > threshold) {
-      uint8_t overage = l - threshold;
-      uint8_t overage2 = qadd8(overage, overage);
-      leds[i] += CRGB(overage, overage2, qadd8(overage2, overage2));
-    }
-  }
-}
+//   for(uint16_t i = 0; i < _leds; i++) {
+//     uint8_t threshold = scale8(sin8(wave), 20) + basethreshold;
+//     wave += 7;
+//     uint8_t l = leds[i].getAverageLight();
+//     if(l > threshold) {
+//       uint8_t overage = l - threshold;
+//       uint8_t overage2 = qadd8(overage, overage);
+//       leds[i] += CRGB(overage, overage2, qadd8(overage2, overage2));
+//     }
+//   }
+// }
 
-// Deepen the blues and greens
-void LedStripConfig::pacifica_deepen_colors() {
-  for(uint16_t i = 0; i < _leds; i++) {
-    leds[i].blue = scale8(leds[i].blue,  145); 
-    leds[i].green= scale8(leds[i].green, 200); 
-    leds[i] |= CRGB(2, 5, 7);
-  }
-}
+// // Deepen the blues and greens
+// void LedStripConfig::pacifica_deepen_colors() {
+//   for(uint16_t i = 0; i < _leds; i++) {
+//     leds[i].blue = scale8(leds[i].blue,  145); 
+//     leds[i].green= scale8(leds[i].green, 200); 
+//     leds[i] |= CRGB(2, 5, 7);
+//   }
+// }
