@@ -149,20 +149,20 @@ void LedStripConfig::update(time_t time) {
       writeHsv(hue, saturation, beat * value);
     }
     else if (ledstatus == LS_GRADIENT) { gradient(); }
+    else if (ledstatus == LS_SPARKLES) { sparkles(); }
     else if (ledstatus == LS_WAVE) { waveAnim(ledpalette); }
     else if (ledstatus == LS_HEARTHBEAT) { heartBeat(ledpalette); }
     else if (ledstatus == LS_CONFETTI) { confetti(ledpalette); }
     else if (ledstatus == LS_NOISE) { noise(ledpalette); }
-    else if (ledstatus == LS_FIRE) { fire(ledpalette); }
-    else if (ledstatus == LS_PLASMA) { plasma(ledpalette); }
     else if (ledstatus == LS_RIPPLE) { ripple(ledpalette); }
-    else if (ledstatus == LS_FLASH) { flash(ledpalette); }
-    else if (ledstatus == LS_PRIDE) { pride(); }
-    else if (ledstatus == LS_SPARKLES) { sparkles(); }
-    else if (ledstatus == LS_CYLON) { cylon(); }
-    else if (ledstatus == LS_DISCOBALL) { discoBall(); }
-    else if (ledstatus == LS_WIZARD) { wizard(); }
-    else if (ledstatus == LS_CHESS) { chess(); }
+    // else if (ledstatus == LS_FIRE) { fire(ledpalette); }
+    // else if (ledstatus == LS_PLASMA) { plasma(ledpalette); }
+    // else if (ledstatus == LS_PRIDE) { pride(); }
+    // else if (ledstatus == LS_CYLON) { cylon(); }
+    // else if (ledstatus == LS_DISCOBALL) { discoBall(); }
+    // else if (ledstatus == LS_WIZARD) { wizard(); }
+    // else if (ledstatus == LS_CHESS) { chess(); }
+    // else if (ledstatus == LS_FLASH) { flash(ledpalette); }
     // else if (ledstatus == LS_PACIFICA) { pacifica(); }
 
     if ((ledstatus == LS_SUCCESS
@@ -217,32 +217,17 @@ void LedStripConfig::gradient(){
   }
 }
 
-void LedStripConfig::pride() {
-  uint8_t sat8 = beatsin88(87, 220, 250);
-  uint8_t brightdepth = beatsin88(341, 96, 224);
-  uint16_t brightnessthetainc16 = beatsin88(203, (25 * 256), (40 * 256));
-
-  uint16_t hue16 = _globaltime;//gHue * 256;
-  uint16_t hueinc16 = beatsin88(113, 1, 3000);
-  uint16_t brightnesstheta16 = _globaltime * bpm;
-  
-  for(uint16_t i = 0 ; i < _leds; i++) {
-    hue16 += hueinc16;
-    uint8_t hue8 = hue16 / 256;
-
-    brightnesstheta16  += brightnessthetainc16;
-    uint16_t b16 = sin16(brightnesstheta16  ) + 32768;
-
-    uint16_t bri16 = (uint32_t)((uint32_t)b16 * (uint32_t)b16) / 65536;
-    uint8_t bri8 = (uint32_t)(((uint32_t)bri16) * brightdepth) / 65536;
-    bri8 += (255 - brightdepth);
-    
-    CRGB newcolor = CHSV(hue8, sat8, bri8 * value);
-    
-    uint16_t pixelnumber = i;
-    pixelnumber = (_leds-1) - pixelnumber;
-    
-    nblend(leds[pixelnumber], newcolor, 64);
+void LedStripConfig::sparkles() {
+  fadeToBlackBy(leds, _leds, bpm);
+  int pixel = random(_leds);
+  leds[pixel] = CHSV(hue * 255, saturation * 255, value * 255);
+  int pixel2 = random(_leds);
+  if (pixel2 > _leds / 2) {
+    leds[pixel2] = CHSV(hue * 255, saturation * 255, value * 255);
+  }
+  int pixel3 = random(_leds);
+  if (pixel3 > _leds / 3) {
+    leds[pixel2] = CHSV(hue * 255, saturation * 255, value * 255);
   }
 }
 
@@ -305,71 +290,6 @@ void LedStripConfig::noise(ls_Palette pindex) {
   }
 }
 
-void LedStripConfig::sparkles() {
-  fadeToBlackBy(leds, _leds, bpm);
-  int pixel = random(_leds);
-  leds[pixel] = CHSV(hue * 255, saturation * 255, value * 255);
-  int pixel2 = random(_leds);
-  if (pixel2 > _leds / 2) {
-    leds[pixel2] = CHSV(hue * 255, saturation * 255, value * 255);
-  }
-  int pixel3 = random(_leds);
-  if (pixel3 > _leds / 3) {
-    leds[pixel2] = CHSV(hue * 255, saturation * 255, value * 255);
-  }
-}
-
-bool gReverseDirection = false;
-
-void LedStripConfig::fire(ls_Palette pindex) {
-  // Array of temperature readings at each simulation cell
-  static uint8_t heat[NUM_LEDS];
-
-  // Step 1.  Cool down every cell a little
-  for( int i = 0; i < _leds; i++) {
-    heat[i] = qsub8( heat[i],  random8(0, ((COOLING * 10) / _leds) + 2));
-  }
-
-  // Step 2.  Heat from each cell drifts 'up' and diffuses a little
-  for( int k= _leds - 1; k >= 2; k--) {
-    heat[k] = (heat[k - 1] + heat[k - 2] + heat[k - 2] ) / 3;
-  }
-  
-  // Step 3.  Randomly ignite new 'sparks' of heat near the bottom
-  if( random8() < SPARKING ) {
-    int y = random8(7);
-    heat[y] = qadd8( heat[y], random8(160,255) );
-  }
-
-  // Step 4.  Map from heat cells to LED colors
-  for( int j = 0; j < _leds; j++) {
-    // Scale the heat value from 0-255 down to 0-240
-    // for best results with color palettes.
-    uint8_t colorindex = scale8( heat[j], 240);
-    CRGB color = ColorFromPalette(paletteArray[pindex], colorindex);
-    int pixelnumber;
-    if( gReverseDirection ) {
-      pixelnumber = (_leds-1) - j;
-    } else {
-      pixelnumber = j;
-    }
-    leds[pixelnumber] = color;
-  }
-}
-
-void LedStripConfig::plasma(ls_Palette pindex) {
-  // int thisPhase = beatsin8(6,-64,64);
-  // int thatPhase = beatsin8(7,-64,64);
-  int thisPhase = getCurrentStep(0.1) * 64.0;
-  int thatPhase = getCurrentStep(0.09) * 64.0;
-
-  for (int k=0; k<_leds; k++) {
-    int colorIndex = cubicwave8((k*23)+thisPhase)/2 + cos8((k*15)+thatPhase)/2;
-    int thisBright = qsuba(colorIndex, beatsin8(7,0,96));
-    leds[k] = ColorFromPalette(paletteArray[pindex], colorIndex, thisBright * value, LINEARBLEND);
-  }
-}
-
 void LedStripConfig::ripple(ls_Palette pindex) {
   static int stepRipple = -1;
   static uint8_t colour;
@@ -397,106 +317,186 @@ void LedStripConfig::ripple(ls_Palette pindex) {
   }
 }
 
-void LedStripConfig::flash(ls_Palette pindex){
-  static unsigned int posFlash = 0;
-  EVERY_N_MILLIS_I(thisTimer,100) {
-    uint8_t timeval = beatsin8(10,1,(255 - bpm)*0.5);
-    thisTimer.setPeriod(timeval);
-    posFlash = (posFlash+1) % (_leds-1);
-    leds[posFlash] = ColorFromPalette(paletteArray[pindex], posFlash, 255, currentBlending);
-  }
-  fadeToBlackBy(leds, _leds, 8);
-}
+// void LedStripConfig::pride() {
+//   uint8_t sat8 = beatsin88(87, 220, 250);
+//   uint8_t brightdepth = beatsin88(341, 96, 224);
+//   uint16_t brightnessthetainc16 = beatsin88(203, (25 * 256), (40 * 256));
 
-void LedStripConfig::cylon() {
-  double val = 0.5 + 0.5 * getCurrentStep(0.2);
-  int beat = val * _leds;
+//   uint16_t hue16 = _globaltime;//gHue * 256;
+//   uint16_t hueinc16 = beatsin88(113, 1, 3000);
+//   uint16_t brightnesstheta16 = _globaltime * bpm;
+  
+//   for(uint16_t i = 0 ; i < _leds; i++) {
+//     hue16 += hueinc16;
+//     uint8_t hue8 = hue16 / 256;
 
-  fadeToBlackBy(leds, _leds, bpm);
-  leds[beat] = CHSV(hue * 255, saturation * 255, value * 255);
+//     brightnesstheta16  += brightnessthetainc16;
+//     uint16_t b16 = sin16(brightnesstheta16  ) + 32768;
 
-}
+//     uint16_t bri16 = (uint32_t)((uint32_t)b16 * (uint32_t)b16) / 65536;
+//     uint8_t bri8 = (uint32_t)(((uint32_t)bri16) * brightdepth) / 65536;
+//     bri8 += (255 - brightdepth);
+    
+//     CRGB newcolor = CHSV(hue8, sat8, bri8 * value);
+    
+//     uint16_t pixelnumber = i;
+//     pixelnumber = (_leds-1) - pixelnumber;
+    
+//     nblend(leds[pixelnumber], newcolor, 64);
+//   }
+// }
 
-void LedStripConfig::discoBall(){
-  uint8_t step = _globaltime / 1000; 
+// bool gReverseDirection = false;
 
-  uint8_t secondHand = step % 60;
-  static uint8_t lastSecond = 99;
-  static int wave1=0;                    // Current phase is calculated.
-  static int wave2=0;
-  static int wave3=0;
+// void LedStripConfig::fire(ls_Palette pindex) {
+//   // Array of temperature readings at each simulation cell
+//   static uint8_t heat[NUM_LEDS];
 
-  if(lastSecond != secondHand){
-    lastSecond = secondHand;
-    CRGB p = CHSV(HUE_PURPLE, 255, 255);
-    CRGB g = CHSV(HUE_GREEN, 255, 255);
-    CRGB u = CHSV(HUE_BLUE, 255, 255);
-    CRGB b = CRGB::Black;
-    CRGB w = CRGB::White;
+//   // Step 1.  Cool down every cell a little
+//   for( int i = 0; i < _leds; i++) {
+//     heat[i] = qsub8( heat[i],  random8(0, ((COOLING * 10) / _leds) + 2));
+//   }
 
-    switch(secondHand){
-      case  0: targetPalette = RainbowColors_p; break;
-      case  5: targetPalette = CRGBPalette16(u,u,b,b, p,p,b,b, u,u,b,b, p,p,b,b); break;
-      case 10: targetPalette = OceanColors_p; break;
-      case 15: targetPalette = CloudColors_p; break;
-      case 20: targetPalette = LavaColors_p; break;
-      case 25: targetPalette = ForestColors_p; break;
-      case 30: targetPalette = PartyColors_p; break;
-      case 35: targetPalette = CRGBPalette16(b,b,b,w, b,b,b,w, b,b,b,w, b,b,b,w); break;
-      case 40: targetPalette = CRGBPalette16(u,u,u,w, u,u,u,w, u,u,u,w, u,u,u,w); break;
-      case 45: targetPalette = CRGBPalette16(u,p,u,w, p,u,u,w, u,g,u,w, u,p,u,w); break;
-      case 50: targetPalette = CloudColors_p; break;
-      case 55: targetPalette = CRGBPalette16(u,u,u,w, u,u,p,p, u,p,p,p, u,p,p,w); break;
-      case 60: break;
-    }
-  }
+//   // Step 2.  Heat from each cell drifts 'up' and diffuses a little
+//   for( int k= _leds - 1; k >= 2; k--) {
+//     heat[k] = (heat[k - 1] + heat[k - 2] + heat[k - 2] ) / 3;
+//   }
+  
+//   // Step 3.  Randomly ignite new 'sparks' of heat near the bottom
+//   if( random8() < SPARKING ) {
+//     int y = random8(7);
+//     heat[y] = qadd8( heat[y], random8(160,255) );
+//   }
 
-  nblendPaletteTowardPalette(currentPaletteBlack, targetPalette, 24);
-  wave1 += beatsin8(10,-4,4);
-  wave2 += beatsin8(15,-2,2);
-  wave3 += beatsin8(12,-3,3);
+//   // Step 4.  Map from heat cells to LED colors
+//   for( int j = 0; j < _leds; j++) {
+//     // Scale the heat value from 0-255 down to 0-240
+//     // for best results with color palettes.
+//     uint8_t colorindex = scale8( heat[j], 240);
+//     CRGB color = ColorFromPalette(paletteArray[pindex], colorindex);
+//     int pixelnumber;
+//     if( gReverseDirection ) {
+//       pixelnumber = (_leds-1) - j;
+//     } else {
+//       pixelnumber = j;
+//     }
+//     leds[pixelnumber] = color;
+//   }
+// }
 
-  for(int k=0; k<_leds; k++){
-      uint8_t tmp = sin8(7*k + wave1) + sin8(7*k + wave2) + sin8(7*k + wave3);
-      leds[k] = ColorFromPalette(currentPaletteBlack, tmp, value * 255);
-  }
-}
+// void LedStripConfig::plasma(ls_Palette pindex) {
+//   // int thisPhase = beatsin8(6,-64,64);
+//   // int thatPhase = beatsin8(7,-64,64);
+//   int thisPhase = getCurrentStep(0.1) * 64.0;
+//   int thatPhase = getCurrentStep(0.09) * 64.0;
 
-void LedStripConfig::wizard(){
-  fadeToBlackBy(leds, _leds, 20);
-  byte dothue = 0;
-  for(int i = 0; i < 4; i++) {
-    leds[beatsin16(i+5, 0, _leds-1 )] |= CHSV(dothue, 200, value * 255);
-    dothue += 32; // les color space
-  }
-}
+//   for (int k=0; k<_leds; k++) {
+//     int colorIndex = cubicwave8((k*23)+thisPhase)/2 + cos8((k*15)+thatPhase)/2;
+//     int thisBright = qsuba(colorIndex, beatsin8(7,0,96));
+//     leds[k] = ColorFromPalette(paletteArray[pindex], colorIndex, thisBright * value, LINEARBLEND);
+//   }
+// }
 
-void LedStripConfig::chess(){
-  static int16_t posChess;
-  unsigned int maxChess = (_leds / 4) - 1;
-  static int lastSpeedChess;
-  int speedChess = map(255-bpm, 5, 255, 1, maxChess);
-  if (lastSpeedChess != speedChess) {
-    lastSpeedChess = speedChess;
-    posChess = 0;
-  }
-  // delta (can be negative, and/or odd numbers)
-  int8_t deltaChess = speedChess % 2 == 1 ? speedChess : speedChess + 1;
-  static uint8_t hueChess = 0;
-  leds[posChess] = CHSV(hueChess,255,255);
+// void LedStripConfig::cylon() {
+//   double val = 0.5 + 0.5 * getCurrentStep(0.2);
+//   int beat = val * _leds;
 
-  unsigned int sizeChess = abs(deltaChess);
-  for (size_t i = 0; i < sizeChess - 1; i++) {
-    leds[posChess+i+1] = CHSV(0,0,0);
-  }
-  int16_t next = (posChess + deltaChess);
-  if (next > _leds) {
-    posChess = 0;
-    hueChess = hueChess + random8(42,128);
-  } else {
-    posChess = next;
-  }
-}
+//   fadeToBlackBy(leds, _leds, bpm);
+//   leds[beat] = CHSV(hue * 255, saturation * 255, value * 255);
+
+// }
+
+// void LedStripConfig::discoBall(){
+//   uint8_t step = _globaltime / 1000; 
+
+//   uint8_t secondHand = step % 60;
+//   static uint8_t lastSecond = 99;
+//   static int wave1=0;                    // Current phase is calculated.
+//   static int wave2=0;
+//   static int wave3=0;
+
+//   if(lastSecond != secondHand){
+//     lastSecond = secondHand;
+//     CRGB p = CHSV(HUE_PURPLE, 255, 255);
+//     CRGB g = CHSV(HUE_GREEN, 255, 255);
+//     CRGB u = CHSV(HUE_BLUE, 255, 255);
+//     CRGB b = CRGB::Black;
+//     CRGB w = CRGB::White;
+
+//     switch(secondHand){
+//       case  0: targetPalette = RainbowColors_p; break;
+//       case  5: targetPalette = CRGBPalette16(u,u,b,b, p,p,b,b, u,u,b,b, p,p,b,b); break;
+//       case 10: targetPalette = OceanColors_p; break;
+//       case 15: targetPalette = CloudColors_p; break;
+//       case 20: targetPalette = LavaColors_p; break;
+//       case 25: targetPalette = ForestColors_p; break;
+//       case 30: targetPalette = PartyColors_p; break;
+//       case 35: targetPalette = CRGBPalette16(b,b,b,w, b,b,b,w, b,b,b,w, b,b,b,w); break;
+//       case 40: targetPalette = CRGBPalette16(u,u,u,w, u,u,u,w, u,u,u,w, u,u,u,w); break;
+//       case 45: targetPalette = CRGBPalette16(u,p,u,w, p,u,u,w, u,g,u,w, u,p,u,w); break;
+//       case 50: targetPalette = CloudColors_p; break;
+//       case 55: targetPalette = CRGBPalette16(u,u,u,w, u,u,p,p, u,p,p,p, u,p,p,w); break;
+//       case 60: break;
+//     }
+//   }
+
+//   nblendPaletteTowardPalette(currentPaletteBlack, targetPalette, 24);
+//   wave1 += beatsin8(10,-4,4);
+//   wave2 += beatsin8(15,-2,2);
+//   wave3 += beatsin8(12,-3,3);
+
+//   for(int k=0; k<_leds; k++){
+//       uint8_t tmp = sin8(7*k + wave1) + sin8(7*k + wave2) + sin8(7*k + wave3);
+//       leds[k] = ColorFromPalette(currentPaletteBlack, tmp, value * 255);
+//   }
+// }
+
+// void LedStripConfig::wizard(){
+//   fadeToBlackBy(leds, _leds, 20);
+//   byte dothue = 0;
+//   for(int i = 0; i < 4; i++) {
+//     leds[beatsin16(i+5, 0, _leds-1 )] |= CHSV(dothue, 200, value * 255);
+//     dothue += 32; // les color space
+//   }
+// }
+
+// void LedStripConfig::chess(){
+//   static int16_t posChess;
+//   unsigned int maxChess = (_leds / 4) - 1;
+//   static int lastSpeedChess;
+//   int speedChess = map(255-bpm, 5, 255, 1, maxChess);
+//   if (lastSpeedChess != speedChess) {
+//     lastSpeedChess = speedChess;
+//     posChess = 0;
+//   }
+//   // delta (can be negative, and/or odd numbers)
+//   int8_t deltaChess = speedChess % 2 == 1 ? speedChess : speedChess + 1;
+//   static uint8_t hueChess = 0;
+//   leds[posChess] = CHSV(hueChess,255,255);
+
+//   unsigned int sizeChess = abs(deltaChess);
+//   for (size_t i = 0; i < sizeChess - 1; i++) {
+//     leds[posChess+i+1] = CHSV(0,0,0);
+//   }
+//   int16_t next = (posChess + deltaChess);
+//   if (next > _leds) {
+//     posChess = 0;
+//     hueChess = hueChess + random8(42,128);
+//   } else {
+//     posChess = next;
+//   }
+// }
+
+// void LedStripConfig::flash(ls_Palette pindex){
+//   static unsigned int posFlash = 0;
+//   EVERY_N_MILLIS_I(thisTimer,100) {
+//     uint8_t timeval = beatsin8(10,1,(255 - bpm)*0.5);
+//     thisTimer.setPeriod(timeval);
+//     posFlash = (posFlash+1) % (_leds-1);
+//     leds[posFlash] = ColorFromPalette(paletteArray[pindex], posFlash, 255, currentBlending);
+//   }
+//   fadeToBlackBy(leds, _leds, 8);
+// }
 
 // // Pacifica
 

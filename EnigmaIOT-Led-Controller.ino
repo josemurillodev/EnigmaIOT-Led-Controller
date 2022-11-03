@@ -125,7 +125,7 @@ void setup () {
         return;
     }
 
-	controller = (EnigmaIOTjsonController*)new LED_CONTROLLER (); // Use your class name here
+	controller = (EnigmaIOTjsonController*)new LedController (); // Use your class name here
 
 	//EnigmaIOTNode.setLed (BLUE_LED); // Set communication LED
 	EnigmaIOTNode.setResetPin (RESET_PIN); // Set reset pin

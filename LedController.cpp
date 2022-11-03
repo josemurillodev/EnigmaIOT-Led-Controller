@@ -17,12 +17,11 @@ constexpr auto CONFIG_FILE = "/customconf.json"; ///< @brief Custom configuratio
 // -----------------------------------------
 
 const char* ledKey = "led";
-const char* commandKey = "cmd";
+const char* commandKey = "status";
 
 LedStripConfig ledstrip;
 
-
-bool LED_CONTROLLER::processRxCommand (const uint8_t* address, const uint8_t* buffer, uint8_t length, nodeMessageType_t command, nodePayloadEncoding_t payloadEncoding) {
+bool LedController::processRxCommand (const uint8_t* address, const uint8_t* buffer, uint8_t length, nodeMessageType_t command, nodePayloadEncoding_t payloadEncoding) {
 	// Process incoming messages here
 	// They are normally encoded as MsgPack so you can confert them to JSON very easily
 	// Check command type
@@ -74,43 +73,107 @@ bool LED_CONTROLLER::processRxCommand (const uint8_t* address, const uint8_t* bu
 		}
 	}
 
+  LED_CONTROLLER_EVENT _type = (LED_CONTROLLER_EVENT)doc[commandKey].as<int>();
+
 	// Set state
 	if (command == nodeMessageType_t::DOWNSTREAM_DATA_SET) {
-		if (!strcmp (doc[commandKey], ledKey)) {
-			if (doc.containsKey (ledKey)) {
-				if (doc[ledKey].as<int> () == 1) {
-					led = _LED_ON;
-				} else if (doc[ledKey].as<int> () == 0) {
-					led = _LED_OFF;
-				} else {
-					DEBUG_WARN ("Wrong LED value: %d", doc[ledKey].as<int> ());
-					return false;
-				}
-				DEBUG_WARN ("Set LED status to %s", led == _LED_ON ? "ON" : "OFF");
-			} else {
-				DEBUG_WARN ("Wrong format");
+    switch (_type) {
+      // case SE_TYPE_STATUS: {
+      //   Serial.println(F("SE_TYPE_STATUS"));
+      //   ls_Status _status = (ls_Status)doc["status"].as<int>();
+      //   if (ledstrip.ledstatus != _status) {
+      //     ledstrip.setStatus(_status, &mesh);
+      //   }
+      //   break;
+      // }
+      case SE_TYPE_COLOR: {
+        DEBUG_WARN ("SE_TYPE_COLOR");
+        JsonObject _hsv = doc["hsv"];
+        double hue = _hsv["h"];
+        double saturation = _hsv["s"];
+        double value = _hsv["v"];
+        ledstrip.updateHsv(hue, saturation, value);
+        break;
+      }
+      // case SE_TYPE_PALETTE: {
+      //   Serial.println(F("SE_TYPE_PALETTE"));
+      //   ls_Palette _palette = (ls_Palette)doc["palette"].as<int>();
+      //   if (ledstrip.ledpalette != _palette) {
+      //     ledstrip.ledpalette = _palette;
+      //   }
+      //   break;
+      // }
+      // case SE_TYPE_BPM: {
+      //   Serial.println(F("SE_TYPE_BPM"));
+      //   uint8_t _bpm = doc["bpm"];
+      //   if (ledstrip.bpm != _bpm) {
+      //     ledstrip.bpm = _bpm > 0 ? _bpm : ledstrip.bpm;
+      //   }
+      //   break;
+      // }
+      // case SE_TYPE_TOGGLE: {
+      //   Serial.println(F("SE_TYPE_TOGGLE"));
+      //   if (isSelected) {
+      //     ledstrip.isOn = !ledstrip.isOn;
+      //   }
+      //   break;
+      // }
+      // case SE_TYPE_CONFIG: {
+      //   Serial.println(F("SE_TYPE_CONFIG"));
+      //   if (isSelected) {
+      //     uint16_t _numLeds = doc["ledcount"];
+      //     const char * _deviceName = doc["deviceName"];
+      //     Serial.println(_deviceName);
+      //     ledstrip.setLeds(_numLeds);
+      //     nodeConfig.setNodeName(_deviceName);
+      //     nodeConfig.updateNodeConfig();
+      //   }
+      //   break;
+      // }
+      // case SE_TYPE_RESET: {
+      //   Serial.println(F("SE_TYPE_RESET"));
+      //   if (isSelected) {
+      //     handleSettingsDelete();
+      //     return;
+      //   }
+      //   break;
+      // }
+      default:
+				DEBUG_WARN ("Wrong led type");
 				return false;
-			}
+        break;
+    }
+		// if (!strcmp (doc[commandKey], ledKey)) {
+		// 	if (doc.containsKey (ledKey)) {
+		// 		if (doc[ledKey].as<int> () == 1) {
+		// 			led = _LED_ON;
+		// 		} else if (doc[ledKey].as<int> () == 0) {
+		// 			led = _LED_OFF;
+		// 		} else {
+		// 			DEBUG_WARN ("Wrong LED value: %d", doc[ledKey].as<int> ());
+		// 			return false;
+		// 		}
+		// 		DEBUG_WARN ("Set LED status to %s", led == _LED_ON ? "ON" : "OFF");
+		// 	} else {
+		// 		DEBUG_WARN ("Wrong format");
+		// 		return false;
+		// 	}
 
-			// Confirm command execution with send state
-			if (!sendLedStatus ()) {
-				DEBUG_WARN ("Error sending LED status");
-				return false;
-			}
-		}
+		// 	// Confirm command execution with send state
+		// 	if (!sendLedStatus ()) {
+		// 		DEBUG_WARN ("Error sending LED status");
+		// 		return false;
+		// 	}
+		// }
 	}
 
 
 	return true;
 }
 
-bool LED_CONTROLLER::sendLedStatus () {
-	const size_t capacity = JSON_OBJECT_SIZE (8);
+bool LedController::sendLedStatus () {
+	const size_t capacity = JSON_OBJECT_SIZE (11);
 	DynamicJsonDocument json (capacity);
-
-	char gwAddress[ENIGMAIOT_ADDR_LEN * 3];
-  json["nodeAddress"] = mac2str (enigmaIotNode->getNode()->getMacAddress(), gwAddress);
-  json["nodeName"] = enigmaIotNode->getNode()->getNodeName();
   json["ledcount"] = ledstrip.getLeds();
   json["status"] = ledstrip.ledstatus;
   json["palette"] = (uint8_t)ledstrip.ledpalette;
@@ -120,27 +183,31 @@ bool LED_CONTROLLER::sendLedStatus () {
   hsv_r["s"] = ledstrip.saturation;
   hsv_r["v"] = ledstrip.value;
 
+	char gwAddress[ENIGMAIOT_ADDR_LEN * 3];
+  json["nodeName"] = enigmaIotNode->getNode()->getNodeName();
+  json["nodeAddress"] = mac2str (enigmaIotNode->getNode()->getMacAddress(), gwAddress);
+
 	return sendJson (json);
 }
 
 
-bool LED_CONTROLLER::sendCommandResp (const char* command, bool result) {
+bool LedController::sendCommandResp (const char* command, bool result) {
 	// Respond to command with a result: true if successful, false if failed 
 	return true;
 }
 
-void LED_CONTROLLER::connectInform () {
+void LedController::connectInform () {
 
 #if SUPPORT_HA_DISCOVERY    
     // Register every HAEntity discovery function here. As many as you need
-    addHACall (std::bind (&LED_CONTROLLER::buildHADiscovery, this));
-    addHACall (std::bind (&LED_CONTROLLER::sendLedStatus, this));
+    addHACall (std::bind (&LedController::buildHADiscovery, this));
+    addHACall (std::bind (&LedController::sendLedStatus, this));
 #endif
 
     EnigmaIOTjsonController::connectInform ();
 }
 
-void LED_CONTROLLER::setup (EnigmaIOTNodeClass* node, void* data) {
+void LedController::setup (EnigmaIOTNodeClass* node, void* data) {
 	enigmaIotNode = node;
 
 	// You do node setup here. Use it as it was the normal setup() Arduino function
@@ -157,7 +224,7 @@ void LED_CONTROLLER::setup (EnigmaIOTNodeClass* node, void* data) {
 	// If your node should sleep after sending data do all remaining tasks here
 }
 
-void LED_CONTROLLER::loop () {
+void LedController::loop () {
 	static time_t clock;
 	clock = EnigmaIOTNode.clock ();
 
@@ -170,34 +237,34 @@ void LED_CONTROLLER::loop () {
 	// digitalWrite (LED_PIN, led);
 }
 
-LED_CONTROLLER::~LED_CONTROLLER () {
+LedController::~LedController () {
 	// It your class uses dynamic data free it up here
 	// This is normally not needed but it is a good practice
 }
 
-void LED_CONTROLLER::configManagerStart () {
+void LedController::configManagerStart () {
 	DEBUG_INFO ("==== CCost Controller Configuration start ====");
 	// If you need to add custom configuration parameters do it here
 }
 
-void LED_CONTROLLER::configManagerExit (bool status) {
+void LedController::configManagerExit (bool status) {
 	DEBUG_INFO ("==== CCost Controller Configuration result ====");
 	// You can read configuration paramenter values here
 }
 
-bool LED_CONTROLLER::loadConfig () {
+bool LedController::loadConfig () {
 	// If you need to read custom configuration data do it here
 	return true;
 }
 
-bool LED_CONTROLLER::saveConfig () {
+bool LedController::saveConfig () {
 	// If you need to save custom configuration data do it here
 	return true;
 }
 
 #if SUPPORT_HA_DISCOVERY   
 // Repeat this method for every entity
-void LED_CONTROLLER::buildHADiscovery () {
+void LedController::buildHADiscovery () {
     // Select corresponding HAEntiny type
     HASwitch* haEntity = new HASwitch ();
 
