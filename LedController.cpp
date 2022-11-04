@@ -16,7 +16,7 @@ constexpr auto CONFIG_FILE = "/customconf.json"; ///< @brief Custom configuratio
 // like serial port instances, I2C, etc
 // -----------------------------------------
 
-const char* ledKey = "led";
+// const char* ledKey = "led";
 const char* commandKey = "status";
 
 LedStripConfig ledstrip;
@@ -24,16 +24,11 @@ LedStripConfig ledstrip;
 bool LedController::processRxCommand (const uint8_t* address, const uint8_t* buffer, uint8_t length, nodeMessageType_t command, nodePayloadEncoding_t payloadEncoding) {
 	// Process incoming messages here
 	// They are normally encoded as MsgPack so you can confert them to JSON very easily
-	// Check command type
-	bool broadcast = false;
 	uint8_t _command = command;
 
-	if (_command & 0x80) {
-		broadcast = true;
-	}
 	_command = (_command & 0x7F);
 
-	if (command != nodeMessageType_t::DOWNSTREAM_DATA_GET && command != nodeMessageType_t::DOWNSTREAM_DATA_SET) {
+	if (_command != nodeMessageType_t::DOWNSTREAM_DATA_GET && _command != nodeMessageType_t::DOWNSTREAM_DATA_SET) {
 		DEBUG_WARN ("Wrong message type");
 		return false;
 	}
@@ -55,7 +50,7 @@ bool LedController::processRxCommand (const uint8_t* address, const uint8_t* buf
 		return false;
 	}
 
-	DEBUG_WARN ("Command: %d = %s", command, command == nodeMessageType_t::DOWNSTREAM_DATA_GET ? "GET" : "SET");
+	DEBUG_WARN ("Command: %d = %s", _command, _command == nodeMessageType_t::DOWNSTREAM_DATA_GET ? "GET" : "SET");
 
 	// Dump debug data
 	size_t strLen = measureJson (doc) + 1;
@@ -64,31 +59,28 @@ bool LedController::processRxCommand (const uint8_t* address, const uint8_t* buf
 	DEBUG_WARN ("Data: %s", strBuffer);
 	free (strBuffer);
 
-	// Check cmd field on JSON data
-	if (!doc.containsKey (commandKey)) {
-		DEBUG_WARN ("Wrong format");
-		return false;
-	}
+	// // Check cmd field on JSON data
+	// if (!doc.containsKey (commandKey)) {
+	// 	DEBUG_WARN ("Wrong format");
+	// 	return false;
+	// }
 
 	// Get state
-	if (command == nodeMessageType_t::DOWNSTREAM_DATA_GET) {
-		if (!strcmp (doc[commandKey], ledKey)) {
-			DEBUG_WARN ("Request LED status. LED = %s", led == _LED_ON ? "ON" : "OFF");
+	if (_command == nodeMessageType_t::DOWNSTREAM_DATA_GET) {
 			if (!sendLedStatus ()) {
 				DEBUG_WARN ("Error sending LED status");
 				return false;
 			}
-		}
 	}
 
   LED_CONTROLLER_EVENT _type = (LED_CONTROLLER_EVENT)doc[commandKey].as<int>();
 
 	// Set state
-	if (command == nodeMessageType_t::DOWNSTREAM_DATA_SET) {
+	if (_command == nodeMessageType_t::DOWNSTREAM_DATA_SET) {
     switch (_type) {
       case SE_TYPE_STATUS: {
         DEBUG_WARN("SE_TYPE_STATUS");
-        ls_Status _status = (ls_Status)doc["status"].as<int>();
+        ls_Modes _status = (ls_Modes)doc["status"].as<int>();
 				static time_t clock;
 				clock = EnigmaIOTNode.clock ();
         if (ledstrip.ledstatus != _status) {
@@ -105,43 +97,41 @@ bool LedController::processRxCommand (const uint8_t* address, const uint8_t* buf
         ledstrip.updateHsv(hue, saturation, value);
         break;
       }
-      // case SE_TYPE_PALETTE: {
-      //   Serial.println(F("SE_TYPE_PALETTE"));
-      //   ls_Palette _palette = (ls_Palette)doc["palette"].as<int>();
-      //   if (ledstrip.ledpalette != _palette) {
-      //     ledstrip.ledpalette = _palette;
-      //   }
-      //   break;
-      // }
-      // case SE_TYPE_BPM: {
-      //   Serial.println(F("SE_TYPE_BPM"));
-      //   uint8_t _bpm = doc["bpm"];
-      //   if (ledstrip.bpm != _bpm) {
-      //     ledstrip.bpm = _bpm > 0 ? _bpm : ledstrip.bpm;
-      //   }
-      //   break;
-      // }
+      case SE_TYPE_PALETTE: {
+        DEBUG_WARN("SE_TYPE_PALETTE");
+        ls_Palette _palette = (ls_Palette)doc["palette"].as<int>();
+        if (ledstrip.ledpalette != _palette) {
+          ledstrip.ledpalette = _palette;
+        }
+        break;
+      }
+      case SE_TYPE_BPM: {
+        DEBUG_WARN("SE_TYPE_BPM");
+        uint8_t _bpm = doc["bpm"];
+        if (ledstrip.bpm != _bpm) {
+          ledstrip.bpm = _bpm > 0 ? _bpm : ledstrip.bpm;
+        }
+        break;
+      }
       // case SE_TYPE_TOGGLE: {
-      //   Serial.println(F("SE_TYPE_TOGGLE"));
+      //   DEBUG_WARN("SE_TYPE_TOGGLE");
       //   if (isSelected) {
       //     ledstrip.isOn = !ledstrip.isOn;
       //   }
       //   break;
       // }
-      // case SE_TYPE_CONFIG: {
-      //   Serial.println(F("SE_TYPE_CONFIG"));
-      //   if (isSelected) {
-      //     uint16_t _numLeds = doc["ledcount"];
-      //     const char * _deviceName = doc["deviceName"];
-      //     Serial.println(_deviceName);
-      //     ledstrip.setLeds(_numLeds);
-      //     nodeConfig.setNodeName(_deviceName);
-      //     nodeConfig.updateNodeConfig();
-      //   }
-      //   break;
-      // }
+      case SE_TYPE_CONFIG: {
+        DEBUG_WARN("SE_TYPE_CONFIG");
+        uint16_t _numLeds = doc["ledcount"];
+        // const char * _deviceName = doc["deviceName"];
+        // Serial.println(_deviceName);
+        ledstrip.setLeds(_numLeds);
+        // nodeConfig.setNodeName(_deviceName);
+        // nodeConfig.updateNodeConfig();
+        break;
+      }
       // case SE_TYPE_RESET: {
-      //   Serial.println(F("SE_TYPE_RESET"));
+      //   DEBUG_WARN("SE_TYPE_RESET");
       //   if (isSelected) {
       //     handleSettingsDelete();
       //     return;
@@ -175,6 +165,10 @@ bool LedController::processRxCommand (const uint8_t* address, const uint8_t* buf
 		// 		return false;
 		// 	}
 		// }
+    if (!sendLedStatus ()) {
+      DEBUG_WARN ("Error sending LED status 2");
+      return false;
+    }
 	}
 
 

@@ -184,7 +184,7 @@ void LedStripConfig::syncTime(int64_t time) {
   _lastUpdated = _globaltime;
 }
 
-void LedStripConfig::setStatus(ls_Status s) {
+void LedStripConfig::setStatus(ls_Modes s) {
   Serial.print("setStatus ");
   Serial.println(s);
   if (isTemporal(s) && !isTemporal(ledstatus)) {
@@ -194,7 +194,7 @@ void LedStripConfig::setStatus(ls_Status s) {
   _lastUpdated = millis();
 }
 
-void LedStripConfig::setStatus(ls_Status s, int64_t time) {
+void LedStripConfig::setStatus(ls_Modes s, int64_t time) {
   Serial.print("setStatus ");
   Serial.println(s);
   if (isTemporal(s) && !isTemporal(ledstatus)) {

@@ -6,7 +6,7 @@
 #include <ColorConverterLib.h>
 #include <FastLED.h>
 
-enum ls_Status {
+enum ls_Modes {
   LS_OFF = 255,
   LS_SOLID = 0,
   LS_LOADING = 1,
@@ -54,13 +54,13 @@ class LedStripConfig {
     void writeHsv(double h, double s, double v);
     void updateHsv(double h, double s, double v);
     double getCurrentStep(double multiplier = 1.0);
-    void setStatus(ls_Status status);
-    void setStatus(ls_Status status, time_t time);
+    void setStatus(ls_Modes status);
+    void setStatus(ls_Modes status, time_t time);
     void syncTime(time_t time);
     void setLeds(uint16_t count);
     uint16_t getLeds();
     bool isOn = true;
-    ls_Status ledstatus = LS_SOLID;
+    ls_Modes ledstatus = LS_SOLID;
     ls_Palette ledpalette = LP_OCEAN;
     uint8_t bpm = 120;
     double hue = 0.5;
@@ -75,7 +75,7 @@ class LedStripConfig {
     uint32_t _prevms;
     uint16_t _leds = 16;
     double _deltams;
-    ls_Status _prevStatus;
+    ls_Modes _prevStatus;
     void gradient();
     // void pride();
     void sparkles();
@@ -106,7 +106,7 @@ class LedStripConfig {
     // void pacifica_add_whitecaps();
     // void pacifica_deepen_colors();
 
-    bool isTemporal(ls_Status s) {
+    bool isTemporal(ls_Modes s) {
       return s == LS_SUCCESS || s == LS_INFO || s == LS_ERROR || s == LS_LOADING;
     };
 
