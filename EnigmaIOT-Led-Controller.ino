@@ -103,6 +103,8 @@ void processRxData (const uint8_t* mac, const uint8_t* buffer, uint8_t length, n
 	}
 }
 
+// void disconnectInform (nodeInvalidateReason_t reason){}
+
 // Do not modify
 void wifiManagerExit (boolean status) {
 	controller->configManagerExit (status);
@@ -136,6 +138,7 @@ void setup () {
 										  // You should enable it if your node noes not send any periodic data
 	EnigmaIOTNode.onWiFiManagerStarted (wifiManagerStarted);
 	EnigmaIOTNode.onWiFiManagerExit (wifiManagerExit);
+	EnigmaIOTNode.enableBroadcast ();
 
 	if (!controller->loadConfig ()) { // Trigger custom configuration loading
 		DEBUG_WARN ("Error reading config file");

@@ -25,6 +25,14 @@ bool LedController::processRxCommand (const uint8_t* address, const uint8_t* buf
 	// Process incoming messages here
 	// They are normally encoded as MsgPack so you can confert them to JSON very easily
 	// Check command type
+	bool broadcast = false;
+	uint8_t _command = command;
+
+	if (_command & 0x80) {
+		broadcast = true;
+	}
+	_command = (_command & 0x7F);
+
 	if (command != nodeMessageType_t::DOWNSTREAM_DATA_GET && command != nodeMessageType_t::DOWNSTREAM_DATA_SET) {
 		DEBUG_WARN ("Wrong message type");
 		return false;
@@ -78,16 +86,18 @@ bool LedController::processRxCommand (const uint8_t* address, const uint8_t* buf
 	// Set state
 	if (command == nodeMessageType_t::DOWNSTREAM_DATA_SET) {
     switch (_type) {
-      // case SE_TYPE_STATUS: {
-      //   Serial.println(F("SE_TYPE_STATUS"));
-      //   ls_Status _status = (ls_Status)doc["status"].as<int>();
-      //   if (ledstrip.ledstatus != _status) {
-      //     ledstrip.setStatus(_status, &mesh);
-      //   }
-      //   break;
-      // }
+      case SE_TYPE_STATUS: {
+        DEBUG_WARN("SE_TYPE_STATUS");
+        ls_Status _status = (ls_Status)doc["status"].as<int>();
+				static time_t clock;
+				clock = EnigmaIOTNode.clock ();
+        if (ledstrip.ledstatus != _status) {
+          ledstrip.setStatus(_status, clock);
+        }
+        break;
+      }
       case SE_TYPE_COLOR: {
-        DEBUG_WARN ("SE_TYPE_COLOR");
+        DEBUG_WARN("SE_TYPE_COLOR");
         JsonObject _hsv = doc["hsv"];
         double hue = _hsv["h"];
         double saturation = _hsv["s"];
@@ -139,7 +149,7 @@ bool LedController::processRxCommand (const uint8_t* address, const uint8_t* buf
       //   break;
       // }
       default:
-				DEBUG_WARN ("Wrong led type");
+				DEBUG_WARN("Wrong command type");
 				return false;
         break;
     }
