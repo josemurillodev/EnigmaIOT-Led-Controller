@@ -80,11 +80,11 @@ bool LedController::processRxCommand (const uint8_t* address, const uint8_t* buf
     switch (_type) {
       case SE_TYPE_STATUS: {
         DEBUG_WARN("SE_TYPE_STATUS");
-        ls_Modes _status = (ls_Modes)doc["status"].as<int>();
+        ls_Modes _mode = (ls_Modes)doc["mode"].as<int>();
 				static time_t clock;
 				clock = EnigmaIOTNode.clock ();
-        if (ledstrip.ledMode != _status) {
-          ledstrip.setStatus(_status, clock);
+        if (ledstrip.ledMode != _mode) {
+          ledstrip.setStatus(_mode, clock);
         }
         break;
       }
@@ -154,6 +154,8 @@ bool LedController::processRxCommand (const uint8_t* address, const uint8_t* buf
 
 	return true;
 }
+
+// TODO: send state array
 
 bool LedController::sendLedStatus () {
 	const size_t capacity = JSON_OBJECT_SIZE (14);
