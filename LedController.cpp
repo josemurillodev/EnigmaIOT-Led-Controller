@@ -113,13 +113,12 @@ bool LedController::processRxCommand (const uint8_t* address, const uint8_t* buf
         }
         break;
       }
-      // case SE_TYPE_TOGGLE: {
-      //   DEBUG_WARN("SE_TYPE_TOGGLE");
-      //   if (isSelected) {
-      //     ledstrip.isOn = !ledstrip.isOn;
-      //   }
-      //   break;
-      // }
+      case SE_TYPE_TOGGLE: {
+        DEBUG_WARN("SE_TYPE_TOGGLE");
+        bool _isOn = doc["isOn"];
+        ledstrip.isOn = _isOn;
+        break;
+      }
       case SE_TYPE_CONFIG: {
         DEBUG_WARN("SE_TYPE_CONFIG");
         uint16_t _ledCount = doc["ledCount"];
@@ -157,18 +156,19 @@ bool LedController::processRxCommand (const uint8_t* address, const uint8_t* buf
 }
 
 bool LedController::sendLedStatus () {
-	const size_t capacity = JSON_OBJECT_SIZE (12);
+	const size_t capacity = JSON_OBJECT_SIZE (14);
 	DynamicJsonDocument json (capacity);
   json["name"] = enigmaIotNode->getNode()->getNodeName();
   json["ledCount"] = ledstrip.getLeds();
   json["ledMode"] = ledstrip.ledMode;
   json["palette"] = (uint8_t)ledstrip.ledpalette;
-  // json["bpm"] = ledstrip.bpm;
+  json["bpm"] = ledstrip.bpm;
   JsonObject hsv_r = json.createNestedObject("hsv");
   hsv_r["h"] = ledstrip.hue;
   hsv_r["s"] = ledstrip.saturation;
   hsv_r["v"] = ledstrip.value;
 
+  json["isOn"] = ledstrip.isOn;
   json["device"] = CONTROLLER_NAME;
 
 	char gwAddress[ENIGMAIOT_ADDR_LEN * 3];

@@ -120,7 +120,7 @@ void LedStripConfig::update(time_t time) {
     _deltams = _globaltime - _prevms;
     _prevms = _globaltime;
     // Serial.println(ledMode);
-    if (ledMode == LS_OFF || !isOn) {
+    if (!isOn) {
       writeRgb(0, 0, 0);
       ledcontroller->showLeds(value * 255);
       return;
