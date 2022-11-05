@@ -122,11 +122,16 @@ bool LedController::processRxCommand (const uint8_t* address, const uint8_t* buf
       case SE_TYPE_CONFIG: {
         DEBUG_WARN("SE_TYPE_CONFIG");
         uint16_t _ledCount = doc["ledCount"];
-        // const char * _deviceName = doc["deviceName"];
-        // Serial.println(_deviceName);
         ledstrip.setLeds(_ledCount);
-        // nodeConfig.setNodeName(_deviceName);
-        // nodeConfig.updateNodeConfig();
+        if (doc.containsKey ("name")) {
+          const char * _name = doc["name"];
+          enigmaIotNode->getNode()->setNodeName(_name);
+        }
+        if (saveConfig ()) {
+          DEBUG_INFO ("Config updated.");
+        } else {
+          DEBUG_ERROR ("Error saving config");
+        }
         break;
       }
       // case SE_TYPE_RESET: {
@@ -150,7 +155,6 @@ bool LedController::processRxCommand (const uint8_t* address, const uint8_t* buf
 		// 	}
 		// }
 	}
-
 
 	return true;
 }
@@ -242,13 +246,147 @@ void LedController::configManagerExit (bool status) {
 }
 
 bool LedController::loadConfig () {
-	// If you need to read custom configuration data do it here
-	return true;
+  // // If you need to read custom configuration data do it here
+  bool json_correct = false;
+
+  if (!FILESYSTEM.begin()) {
+    DEBUG_WARN("Error starting filesystem. Formatting");
+    FILESYSTEM.format();
+  }
+
+  // // FILESYSTEM.remove (CONFIG_FILE); // Only for testing
+
+  if (FILESYSTEM.exists(CONFIG_FILE)) {
+    DEBUG_WARN("Opening %s file", CONFIG_FILE);
+    File configFile = FILESYSTEM.open(CONFIG_FILE, "r");
+    if (configFile) {
+        size_t size = configFile.size();
+        DEBUG_WARN("%s opened. %u bytes", CONFIG_FILE, size);
+        DynamicJsonDocument doc(512);
+        DeserializationError error = deserializeJson(doc, configFile);
+        if (error) {
+          DEBUG_ERROR("Failed to parse file");
+        } else {
+          DEBUG_WARN("JSON file parsed");
+        }
+        // if (doc.containsKey("ledCount")) {
+        //   uint16_t _ledCount = doc["ledCount"];
+        //   ledstrip.setLeds(_ledCount);
+        // }
+
+        if (doc.containsKey("ledCount") &&
+            doc.containsKey("ledMode") &&
+            doc.containsKey("palette") &&
+            doc.containsKey("bpm") &&
+            doc.containsKey("hsv")) {
+
+          uint16_t _ledCount = doc["ledCount"];
+          ledstrip.setLeds(_ledCount);
+          ls_Modes _mode = (ls_Modes)doc["mode"].as<int>();
+          ledstrip.setStatus(_mode);
+          ls_Palette _palette = (ls_Palette)doc["palette"].as<int>();
+          ledstrip.ledpalette = _palette;
+          uint8_t _bpm = doc["bpm"].as<int>();
+          ledstrip.bpm = _bpm;
+          JsonObject _hsv = doc["hsv"];
+          double hue = _hsv["h"];
+          double saturation = _hsv["s"];
+          double value = _hsv["v"];
+          ledstrip.updateHsv(hue, saturation, value);
+
+          json_correct = true;
+        }
+
+        configFile.close();
+
+        if (json_correct) {
+          DEBUG_WARN("Smart switch controller configuration successfuly read");
+        } else {
+          DEBUG_WARN("Smart switch controller configuration error");
+        }
+        // DEBUG_WARN("==== Smart switch Controller Configuration ====");
+        // DEBUG_WARN("Button pin: %d", config.buttonPin);
+        // DEBUG_WARN("Relay pin: %d", config.relayPin);
+        // DEBUG_WARN("Linked: %s", config.linked ? "true" : "false");
+        // DEBUG_WARN("ON level: %s ", config.ON_STATE ? "HIGH" : "LOW");
+        // DEBUG_WARN("Boot relay status: %d ", config.bootStatus);
+
+        size_t jsonLen = measureJsonPretty(doc) + 1;
+        char *output = (char *)malloc(jsonLen);
+        serializeJsonPretty(doc, output, jsonLen);
+
+        DEBUG_WARN("File content:\n%s", output);
+
+        free(output);
+    } else {
+        DEBUG_WARN("Error opening %s", CONFIG_FILE);
+        // defaultConfig();
+    }
+  } else {
+    DEBUG_WARN("%s do not exist", CONFIG_FILE);
+    // defaultConfig();
+  }
+
+  return json_correct;
 }
 
 bool LedController::saveConfig () {
-	// If you need to save custom configuration data do it here
-	return true;
+  // // If you need to save custom configuration data do it here
+  // if (!FILESYSTEM.begin()) {
+  //   DEBUG_WARN("Error opening filesystem");
+  //   return false;
+  // }
+  // DEBUG_INFO("Filesystem opened");
+
+  // File configFile = FILESYSTEM.open(CONFIG_FILE, "w");
+  // if (!configFile) {
+  //   DEBUG_WARN("Failed to open config file %s for writing", CONFIG_FILE);
+  //   return false;
+  // } else {
+  //   DEBUG_INFO("%s opened for writting", CONFIG_FILE);
+  // }
+
+  // DynamicJsonDocument doc(512);
+
+  // doc["ledCount"] = ledstrip.getLeds();
+  // doc["ledMode"] = ledstrip.ledMode;
+  // doc["palette"] = (uint8_t)ledstrip.ledpalette;
+  // doc["bpm"] = ledstrip.bpm;
+  // JsonObject hsv_r = doc.createNestedObject("hsv");
+  // hsv_r["h"] = ledstrip.hue;
+  // hsv_r["s"] = ledstrip.saturation;
+  // hsv_r["v"] = ledstrip.value;
+
+	// // char gwAddress[ENIGMAIOT_ADDR_LEN * 3];
+  // // doc["address"] = mac2str (enigmaIotNode->getNode()->getMacAddress(), gwAddress);
+  // // doc["name"] = enigmaIotNode->getNode()->getNodeName();
+  // // doc["isOn"] = ledstrip.isOn;
+  // // doc["device"] = CONTROLLER_NAME;
+
+  // if (serializeJson(doc, configFile) == 0)
+  // {
+  //   DEBUG_ERROR("Failed to write to file");
+  //   configFile.close();
+  //   // FILESYSTEM.remove (CONFIG_FILE);
+  //   return false;
+  // }
+
+  // size_t jsonLen = measureJsonPretty(doc) + 1;
+  // char *output = (char *)malloc(jsonLen);
+  // serializeJsonPretty(doc, output, jsonLen);
+
+  // DEBUG_DBG("File content:\n%s", output);
+
+  // free(output);
+
+  // configFile.flush();
+  // size_t size = configFile.size();
+
+  // // configFile.write ((uint8_t*)(&mqttgw_config), sizeof (mqttgw_config));
+  // configFile.close();
+  // DEBUG_DBG("Smart Switch controller configuration saved to flash. %u bytes", size);
+
+  return true;
 }
 
 #if SUPPORT_HA_DISCOVERY   

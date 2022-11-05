@@ -142,8 +142,8 @@ void setup () {
 
 	if (!controller->loadConfig ()) { // Trigger custom configuration loading
 		DEBUG_WARN ("Error reading config file");
-		if (FILESYSTEM.format ())
-			DEBUG_WARN ("SPIFFS Formatted");
+		// if (FILESYSTEM.format ())
+		// 	DEBUG_WARN ("SPIFFS Formatted");
 	}
 
 	EnigmaIOTNode.begin (&Espnow_hal, NULL, NULL, true, SLEEPY == 1); // Start EnigmaIOT communication

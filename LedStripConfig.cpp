@@ -53,6 +53,7 @@ void LedStripConfig::initLedStrip() {
   ledcontroller->init();
   ledcontroller->setCorrection(TypicalLEDStrip);
   ledcontroller->setDither(BRIGHTNESS < 255);
+  _started = true;
   ledcontroller->showLeds(255);
   ledcontroller->setLeds(leds, _leds);
 }
@@ -102,8 +103,10 @@ double LedStripConfig::getCurrentStep(double multiplier) {
 void LedStripConfig::setLeds(uint16_t count) {
   if (count <= NUM_LEDS) {
     _leds = count;
-    ledcontroller->showLeds(0);
-    ledcontroller->setLeds(leds, _leds);
+    if (_started) {
+      ledcontroller->showLeds(0);
+      ledcontroller->setLeds(leds, _leds);
+    }
   }
 }
 

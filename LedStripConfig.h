@@ -70,6 +70,7 @@ class LedStripConfig {
     uint8_t rgb_g;
     uint8_t rgb_b;
   private:
+    bool _started = false;
     time_t _globaltime;
     uint32_t _lastUpdated;
     uint32_t _prevms;
