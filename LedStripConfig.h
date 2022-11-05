@@ -60,7 +60,7 @@ class LedStripConfig {
     void setLeds(uint16_t count);
     uint16_t getLeds();
     bool isOn = true;
-    ls_Modes ledstatus = LS_SOLID;
+    ls_Modes ledMode = LS_SOLID;
     ls_Palette ledpalette = LP_OCEAN;
     uint8_t bpm = 120;
     double hue = 0.5;
@@ -91,15 +91,15 @@ class LedStripConfig {
     // void plasma(ls_Palette pindex);
     void ripple(ls_Palette pindex);
     // void flash(ls_Palette pindex);
-  // else if (ledstatus == LS_FIRE) { fire(ledpalette); }
-  // else if (ledstatus == LS_PLASMA) { plasma(ledpalette); }
-  // else if (ledstatus == LS_PRIDE) { pride(); }
-  // else if (ledstatus == LS_CYLON) { cylon(); }
-  // else if (ledstatus == LS_DISCOBALL) { discoBall(); }
-  // else if (ledstatus == LS_WIZARD) { wizard(); }
-  // else if (ledstatus == LS_CHESS) { chess(); }
-  // else if (ledstatus == LS_FLASH) { flash(ledpalette); }
-  // else if (ledstatus == LS_PACIFICA) { pacifica(); }
+  // else if (ledMode == LS_FIRE) { fire(ledpalette); }
+  // else if (ledMode == LS_PLASMA) { plasma(ledpalette); }
+  // else if (ledMode == LS_PRIDE) { pride(); }
+  // else if (ledMode == LS_CYLON) { cylon(); }
+  // else if (ledMode == LS_DISCOBALL) { discoBall(); }
+  // else if (ledMode == LS_WIZARD) { wizard(); }
+  // else if (ledMode == LS_CHESS) { chess(); }
+  // else if (ledMode == LS_FLASH) { flash(ledpalette); }
+  // else if (ledMode == LS_PACIFICA) { pacifica(); }
 
     // void pacifica();
     // void pacifica_one_layer(CRGBPalette16& p, uint16_t cistart, uint16_t wavescale, uint8_t bri, uint16_t ioff);

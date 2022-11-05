@@ -16,8 +16,8 @@ constexpr auto CONFIG_FILE = "/customconf.json"; ///< @brief Custom configuratio
 // like serial port instances, I2C, etc
 // -----------------------------------------
 
-// const char* ledKey = "led";
-const char* commandKey = "status";
+// const char* nodeType = "ledstrip";
+const char* commandKey = "event";
 
 LedStripConfig ledstrip;
 
@@ -83,7 +83,7 @@ bool LedController::processRxCommand (const uint8_t* address, const uint8_t* buf
         ls_Modes _status = (ls_Modes)doc["status"].as<int>();
 				static time_t clock;
 				clock = EnigmaIOTNode.clock ();
-        if (ledstrip.ledstatus != _status) {
+        if (ledstrip.ledMode != _status) {
           ledstrip.setStatus(_status, clock);
         }
         break;
@@ -122,10 +122,10 @@ bool LedController::processRxCommand (const uint8_t* address, const uint8_t* buf
       // }
       case SE_TYPE_CONFIG: {
         DEBUG_WARN("SE_TYPE_CONFIG");
-        uint16_t _numLeds = doc["ledcount"];
+        uint16_t _ledCount = doc["ledCount"];
         // const char * _deviceName = doc["deviceName"];
         // Serial.println(_deviceName);
-        ledstrip.setLeds(_numLeds);
+        ledstrip.setLeds(_ledCount);
         // nodeConfig.setNodeName(_deviceName);
         // nodeConfig.updateNodeConfig();
         break;
@@ -143,21 +143,6 @@ bool LedController::processRxCommand (const uint8_t* address, const uint8_t* buf
 				return false;
         break;
     }
-		// if (!strcmp (doc[commandKey], ledKey)) {
-		// 	if (doc.containsKey (ledKey)) {
-		// 		if (doc[ledKey].as<int> () == 1) {
-		// 			led = _LED_ON;
-		// 		} else if (doc[ledKey].as<int> () == 0) {
-		// 			led = _LED_OFF;
-		// 		} else {
-		// 			DEBUG_WARN ("Wrong LED value: %d", doc[ledKey].as<int> ());
-		// 			return false;
-		// 		}
-		// 		DEBUG_WARN ("Set LED status to %s", led == _LED_ON ? "ON" : "OFF");
-		// 	} else {
-		// 		DEBUG_WARN ("Wrong format");
-		// 		return false;
-		// 	}
 
 		// 	// Confirm command execution with send state
 		// 	if (!sendLedStatus ()) {
@@ -165,10 +150,6 @@ bool LedController::processRxCommand (const uint8_t* address, const uint8_t* buf
 		// 		return false;
 		// 	}
 		// }
-    if (!sendLedStatus ()) {
-      DEBUG_WARN ("Error sending LED status 2");
-      return false;
-    }
 	}
 
 
@@ -176,10 +157,11 @@ bool LedController::processRxCommand (const uint8_t* address, const uint8_t* buf
 }
 
 bool LedController::sendLedStatus () {
-	const size_t capacity = JSON_OBJECT_SIZE (11);
+	const size_t capacity = JSON_OBJECT_SIZE (12);
 	DynamicJsonDocument json (capacity);
-  json["ledcount"] = ledstrip.getLeds();
-  json["status"] = ledstrip.ledstatus;
+  json["name"] = enigmaIotNode->getNode()->getNodeName();
+  json["ledCount"] = ledstrip.getLeds();
+  json["ledMode"] = ledstrip.ledMode;
   json["palette"] = (uint8_t)ledstrip.ledpalette;
   // json["bpm"] = ledstrip.bpm;
   JsonObject hsv_r = json.createNestedObject("hsv");
@@ -187,9 +169,10 @@ bool LedController::sendLedStatus () {
   hsv_r["s"] = ledstrip.saturation;
   hsv_r["v"] = ledstrip.value;
 
+  json["device"] = CONTROLLER_NAME;
+
 	char gwAddress[ENIGMAIOT_ADDR_LEN * 3];
-  json["nodeName"] = enigmaIotNode->getNode()->getNodeName();
-  json["nodeAddress"] = mac2str (enigmaIotNode->getNode()->getMacAddress(), gwAddress);
+  json["address"] = mac2str (enigmaIotNode->getNode()->getMacAddress(), gwAddress);
 
 	return sendJson (json);
 }

@@ -60,13 +60,10 @@ void LedStripConfig::initLedStrip() {
 void LedStripConfig::writeRgb(uint8_t r, uint8_t g, uint8_t b) {
   CRGB color = CRGB(r, g, b);
   fill_solid(ledcontroller->leds(), _leds, color);
-  // ledcontroller->showColor(color, calculate_max_brightness_for_power_vmA(ledcontroller->leds(), _leds, BRIGHTNESS, 5, 1000));
-  // ledcontroller->showColor(color, _leds, calculate_max_brightness_for_power_mW(value * 255, 5 * 1000));
-  // ledcontroller->showColor(color);
 }
 
 void LedStripConfig::setRgb(uint8_t r, uint8_t g, uint8_t b) {
-  if (ledstatus != LS_SOLID) setStatus(LS_SOLID);
+  if (ledMode != LS_SOLID) setStatus(LS_SOLID);
   rgb_r = r;
   rgb_g = g;
   rgb_b = b;
@@ -80,7 +77,7 @@ void LedStripConfig::writeHsv(double h, double s, double v) {
 }
 
 void LedStripConfig::setHsv(double h, double s, double v) {
-  if (ledstatus != LS_SOLID) setStatus(LS_SOLID);
+  if (ledMode != LS_SOLID) setStatus(LS_SOLID);
   hue = h;
   saturation = s;
   value = v;
@@ -122,52 +119,52 @@ void LedStripConfig::update(time_t time) {
 		lastSensorData = _globaltime;
     _deltams = _globaltime - _prevms;
     _prevms = _globaltime;
-    // Serial.println(ledstatus);
-    if (ledstatus == LS_OFF || !isOn) {
+    // Serial.println(ledMode);
+    if (ledMode == LS_OFF || !isOn) {
       writeRgb(0, 0, 0);
       ledcontroller->showLeds(value * 255);
       return;
     }
-    if (ledstatus == LS_SOLID) {
+    if (ledMode == LS_SOLID) {
       // double v = saturation < 0.5 && value > 0.5 ? 0.5 : value;
       writeHsv(hue, saturation, value);
-    } else if (ledstatus == LS_LOADING) {
+    } else if (ledMode == LS_LOADING) {
       int val = 128.0 + 128 * getCurrentStep();
       writeRgb(val, 0, val);
-    } else if (ledstatus == LS_SUCCESS) {
+    } else if (ledMode == LS_SUCCESS) {
       int val = 128.0 + 128 * getCurrentStep();
       writeRgb(0, val, 0);
-    } else if (ledstatus == LS_INFO) {
+    } else if (ledMode == LS_INFO) {
       int val = 128.0 + 128 * getCurrentStep();
       writeRgb(0, 0, val);
-    } else if (ledstatus == LS_ERROR) {
+    } else if (ledMode == LS_ERROR) {
       int val = 128.0 + 128 * getCurrentStep();
       writeRgb(val, 0, 0);
     }
-    else if (ledstatus == LS_BLINK) {
+    else if (ledMode == LS_BLINK) {
       double beat = ((getCurrentStep() + 1.0) * (0.8) / (2.0)) + 0.1;
       writeHsv(hue, saturation, beat * value);
     }
-    else if (ledstatus == LS_GRADIENT) { gradient(); }
-    else if (ledstatus == LS_SPARKLES) { sparkles(); }
-    else if (ledstatus == LS_WAVE) { waveAnim(ledpalette); }
-    else if (ledstatus == LS_HEARTHBEAT) { heartBeat(ledpalette); }
-    else if (ledstatus == LS_CONFETTI) { confetti(ledpalette); }
-    else if (ledstatus == LS_NOISE) { noise(ledpalette); }
-    else if (ledstatus == LS_RIPPLE) { ripple(ledpalette); }
-    // else if (ledstatus == LS_FIRE) { fire(ledpalette); }
-    // else if (ledstatus == LS_PLASMA) { plasma(ledpalette); }
-    // else if (ledstatus == LS_PRIDE) { pride(); }
-    // else if (ledstatus == LS_CYLON) { cylon(); }
-    // else if (ledstatus == LS_DISCOBALL) { discoBall(); }
-    // else if (ledstatus == LS_WIZARD) { wizard(); }
-    // else if (ledstatus == LS_CHESS) { chess(); }
-    // else if (ledstatus == LS_FLASH) { flash(ledpalette); }
-    // else if (ledstatus == LS_PACIFICA) { pacifica(); }
+    else if (ledMode == LS_GRADIENT) { gradient(); }
+    else if (ledMode == LS_SPARKLES) { sparkles(); }
+    else if (ledMode == LS_WAVE) { waveAnim(ledpalette); }
+    else if (ledMode == LS_HEARTHBEAT) { heartBeat(ledpalette); }
+    else if (ledMode == LS_CONFETTI) { confetti(ledpalette); }
+    else if (ledMode == LS_NOISE) { noise(ledpalette); }
+    else if (ledMode == LS_RIPPLE) { ripple(ledpalette); }
+    // else if (ledMode == LS_FIRE) { fire(ledpalette); }
+    // else if (ledMode == LS_PLASMA) { plasma(ledpalette); }
+    // else if (ledMode == LS_PRIDE) { pride(); }
+    // else if (ledMode == LS_CYLON) { cylon(); }
+    // else if (ledMode == LS_DISCOBALL) { discoBall(); }
+    // else if (ledMode == LS_WIZARD) { wizard(); }
+    // else if (ledMode == LS_CHESS) { chess(); }
+    // else if (ledMode == LS_FLASH) { flash(ledpalette); }
+    // else if (ledMode == LS_PACIFICA) { pacifica(); }
 
-    if ((ledstatus == LS_SUCCESS
-      || ledstatus == LS_INFO
-      || ledstatus == LS_ERROR)
+    if ((ledMode == LS_SUCCESS
+      || ledMode == LS_INFO
+      || ledMode == LS_ERROR)
       && _globaltime - _lastUpdated > 3000) {
       //  TODO: Add last status state
       setStatus(_prevStatus);
@@ -187,20 +184,20 @@ void LedStripConfig::syncTime(int64_t time) {
 void LedStripConfig::setStatus(ls_Modes s) {
   Serial.print("setStatus ");
   Serial.println(s);
-  if (isTemporal(s) && !isTemporal(ledstatus)) {
-    _prevStatus = ledstatus;
+  if (isTemporal(s) && !isTemporal(ledMode)) {
+    _prevStatus = ledMode;
   }
-  ledstatus = s;
+  ledMode = s;
   _lastUpdated = millis();
 }
 
 void LedStripConfig::setStatus(ls_Modes s, int64_t time) {
   Serial.print("setStatus ");
   Serial.println(s);
-  if (isTemporal(s) && !isTemporal(ledstatus)) {
-    _prevStatus = ledstatus;
+  if (isTemporal(s) && !isTemporal(ledMode)) {
+    _prevStatus = ledMode;
   }
-  ledstatus = s;
+  ledMode = s;
   _globaltime = time;
   _lastUpdated = _globaltime;
 }
