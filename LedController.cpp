@@ -123,12 +123,13 @@ bool LedController::processRxCommand (const uint8_t* address, const uint8_t* buf
         DEBUG_WARN("SE_TYPE_CONFIG");
         uint16_t _ledCount = doc["ledCount"];
         ledstrip.setLeds(_ledCount);
-        if (doc.containsKey ("name")) {
-          const char * _name = doc["name"];
-          enigmaIotNode->getNode()->setNodeName(_name);
-        }
+        // if (doc.containsKey ("name")) {
+        //   const char * _name = doc["name"];
+        //   enigmaIotNode->getNode()->setNodeName(_name);
+        //   DEBUG_WARN ("Node name set to %s", enigmaIotNode->getNode()->getNodeName ());
+        // }
         if (saveConfig ()) {
-          DEBUG_INFO ("Config updated.");
+          DEBUG_WARN ("Config updated.");
         } else {
           DEBUG_ERROR ("Error saving config");
         }
@@ -331,60 +332,60 @@ bool LedController::loadConfig () {
 }
 
 bool LedController::saveConfig () {
-  // // If you need to save custom configuration data do it here
-  // if (!FILESYSTEM.begin()) {
-  //   DEBUG_WARN("Error opening filesystem");
-  //   return false;
-  // }
-  // DEBUG_INFO("Filesystem opened");
+  // If you need to save custom configuration data do it here
+  if (!FILESYSTEM.begin()) {
+    DEBUG_WARN("Error opening filesystem");
+    return false;
+  }
+  DEBUG_INFO("Filesystem opened");
 
-  // File configFile = FILESYSTEM.open(CONFIG_FILE, "w");
-  // if (!configFile) {
-  //   DEBUG_WARN("Failed to open config file %s for writing", CONFIG_FILE);
-  //   return false;
-  // } else {
-  //   DEBUG_INFO("%s opened for writting", CONFIG_FILE);
-  // }
+  File configFile = FILESYSTEM.open(CONFIG_FILE, "w");
+  if (!configFile) {
+    DEBUG_WARN("Failed to open config file %s for writing", CONFIG_FILE);
+    return false;
+  } else {
+    DEBUG_INFO("%s opened for writting", CONFIG_FILE);
+  }
 
-  // DynamicJsonDocument doc(512);
+  DynamicJsonDocument doc(512);
 
-  // doc["ledCount"] = ledstrip.getLeds();
-  // doc["ledMode"] = ledstrip.ledMode;
-  // doc["palette"] = (uint8_t)ledstrip.ledpalette;
+  doc["ledCount"] = ledstrip.getLeds();
+  doc["ledMode"] = ledstrip.ledMode;
+  doc["palette"] = (uint8_t)ledstrip.ledpalette;
+  JsonObject hsv_r = doc.createNestedObject("hsv");
+  hsv_r["h"] = ledstrip.hue;
+  hsv_r["s"] = ledstrip.saturation;
+  hsv_r["v"] = ledstrip.value;
   // doc["bpm"] = ledstrip.bpm;
-  // JsonObject hsv_r = doc.createNestedObject("hsv");
-  // hsv_r["h"] = ledstrip.hue;
-  // hsv_r["s"] = ledstrip.saturation;
-  // hsv_r["v"] = ledstrip.value;
 
-	// // char gwAddress[ENIGMAIOT_ADDR_LEN * 3];
-  // // doc["address"] = mac2str (enigmaIotNode->getNode()->getMacAddress(), gwAddress);
-  // // doc["name"] = enigmaIotNode->getNode()->getNodeName();
-  // // doc["isOn"] = ledstrip.isOn;
-  // // doc["device"] = CONTROLLER_NAME;
+	// char gwAddress[ENIGMAIOT_ADDR_LEN * 3];
+  // doc["address"] = mac2str (enigmaIotNode->getNode()->getMacAddress(), gwAddress);
+  // doc["name"] = enigmaIotNode->getNode()->getNodeName();
+  // doc["isOn"] = ledstrip.isOn;
+  // doc["device"] = CONTROLLER_NAME;
 
-  // if (serializeJson(doc, configFile) == 0)
-  // {
-  //   DEBUG_ERROR("Failed to write to file");
-  //   configFile.close();
-  //   // FILESYSTEM.remove (CONFIG_FILE);
-  //   return false;
-  // }
+  if (serializeJson(doc, configFile) == 0)
+  {
+    DEBUG_ERROR("Failed to write to file");
+    configFile.close();
+    // FILESYSTEM.remove (CONFIG_FILE);
+    return false;
+  }
 
-  // size_t jsonLen = measureJsonPretty(doc) + 1;
-  // char *output = (char *)malloc(jsonLen);
-  // serializeJsonPretty(doc, output, jsonLen);
+  size_t jsonLen = measureJsonPretty(doc) + 1;
+  char *output = (char *)malloc(jsonLen);
+  serializeJsonPretty(doc, output, jsonLen);
 
-  // DEBUG_DBG("File content:\n%s", output);
+  DEBUG_DBG("File content:\n%s", output);
 
-  // free(output);
+  free(output);
 
-  // configFile.flush();
-  // size_t size = configFile.size();
+  configFile.flush();
+  size_t size = configFile.size();
 
-  // // configFile.write ((uint8_t*)(&mqttgw_config), sizeof (mqttgw_config));
-  // configFile.close();
-  // DEBUG_DBG("Smart Switch controller configuration saved to flash. %u bytes", size);
+  // configFile.write ((uint8_t*)(&mqttgw_config), sizeof (mqttgw_config));
+  configFile.close();
+  DEBUG_DBG("Smart Switch controller configuration saved to flash. %u bytes", size);
 
   return true;
 }
