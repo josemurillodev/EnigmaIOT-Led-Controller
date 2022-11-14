@@ -80,36 +80,44 @@ bool LedController::processRxCommand (const uint8_t* address, const uint8_t* buf
     switch (_type) {
       case SE_TYPE_STATUS: {
         DEBUG_WARN("SE_TYPE_STATUS");
-        ls_Modes _mode = (ls_Modes)doc["mode"].as<int>();
-				static time_t clock;
-				clock = EnigmaIOTNode.clock ();
-        if (ledstrip.ledMode != _mode) {
-          ledstrip.setStatus(_mode, clock);
+        if (doc.containsKey ("mode")) {
+          ls_Modes _mode = (ls_Modes)doc["mode"].as<int>();
+          if (ledstrip.ledMode != _mode) {
+            static time_t clock;
+            clock = EnigmaIOTNode.clock ();
+            ledstrip.setStatus(_mode, clock);
+          }
         }
         break;
       }
       case SE_TYPE_COLOR: {
         DEBUG_WARN("SE_TYPE_COLOR");
-        JsonObject _hsv = doc["hsv"];
-        double hue = _hsv["h"];
-        double saturation = _hsv["s"];
-        double value = _hsv["v"];
-        ledstrip.updateHsv(hue, saturation, value);
+        if (doc.containsKey ("rgb")) {
+          JsonObject _rgb = doc["rgb"];
+          double r = _rgb["r"];
+          double g = _rgb["g"];
+          double b = _rgb["b"];
+          ledstrip.setRgb(r, g, b);
+        }
         break;
       }
       case SE_TYPE_PALETTE: {
         DEBUG_WARN("SE_TYPE_PALETTE");
-        ls_Palette _palette = (ls_Palette)doc["palette"].as<int>();
-        if (ledstrip.ledpalette != _palette) {
-          ledstrip.ledpalette = _palette;
+        if (doc.containsKey ("palette")) {
+          ls_Palette _palette = (ls_Palette)doc["palette"].as<int>();
+          if (ledstrip.ledpalette != _palette) {
+            ledstrip.ledpalette = _palette;
+          }
         }
         break;
       }
       case SE_TYPE_BPM: {
         DEBUG_WARN("SE_TYPE_BPM");
-        uint8_t _bpm = doc["bpm"];
-        if (ledstrip.bpm != _bpm) {
-          ledstrip.bpm = _bpm > 0 ? _bpm : ledstrip.bpm;
+        if (doc.containsKey ("bpm")) {
+          uint8_t _bpm = doc["bpm"];
+          if (ledstrip.bpm != _bpm) {
+            ledstrip.bpm = _bpm > 0 ? _bpm : ledstrip.bpm;
+          }
         }
         break;
       }
@@ -121,13 +129,10 @@ bool LedController::processRxCommand (const uint8_t* address, const uint8_t* buf
       }
       case SE_TYPE_CONFIG: {
         DEBUG_WARN("SE_TYPE_CONFIG");
-        uint16_t _ledCount = doc["ledCount"];
-        ledstrip.setLeds(_ledCount);
-        // if (doc.containsKey ("name")) {
-        //   const char * _name = doc["name"];
-        //   enigmaIotNode->getNode()->setNodeName(_name);
-        //   DEBUG_WARN ("Node name set to %s", enigmaIotNode->getNode()->getNodeName ());
-        // }
+        if (doc.containsKey ("ledCount")) {
+          uint16_t _ledCount = doc["ledCount"];
+          ledstrip.setLeds(_ledCount);
+        }
         if (saveConfig ()) {
           DEBUG_WARN ("Config updated.");
         } else {
@@ -170,10 +175,10 @@ bool LedController::sendLedStatus () {
   json["ledMode"] = ledstrip.ledMode;
   json["palette"] = (uint8_t)ledstrip.ledpalette;
   json["bpm"] = ledstrip.bpm;
-  JsonObject hsv_r = json.createNestedObject("hsv");
-  hsv_r["h"] = ledstrip.hue;
-  hsv_r["s"] = ledstrip.saturation;
-  hsv_r["v"] = ledstrip.value;
+  JsonObject rgb = json.createNestedObject("rgb");
+  rgb["r"] = ledstrip.rgb_r;
+  rgb["g"] = ledstrip.rgb_g;
+  rgb["b"] = ledstrip.rgb_b;
 
   json["isOn"] = ledstrip.isOn;
   json["device"] = CONTROLLER_NAME;
@@ -266,37 +271,35 @@ bool LedController::loadConfig () {
         DynamicJsonDocument doc(512);
         DeserializationError error = deserializeJson(doc, configFile);
         if (error) {
-          DEBUG_ERROR("Failed to parse file");
+          DEBUG_WARN("Failed to parse file");
         } else {
           DEBUG_WARN("JSON file parsed");
         }
-        // if (doc.containsKey("ledCount")) {
-        //   uint16_t _ledCount = doc["ledCount"];
-        //   ledstrip.setLeds(_ledCount);
-        // }
-
-        if (doc.containsKey("ledCount") &&
-            doc.containsKey("ledMode") &&
-            doc.containsKey("palette") &&
-            doc.containsKey("bpm") &&
-            doc.containsKey("hsv")) {
-
+        if (doc.containsKey("ledCount")) {
           uint16_t _ledCount = doc["ledCount"];
           ledstrip.setLeds(_ledCount);
+        }
+        if (doc.containsKey("ledMode")) {
           ls_Modes _mode = (ls_Modes)doc["mode"].as<int>();
           ledstrip.setStatus(_mode);
+        }
+        if (doc.containsKey("palette")) {
           ls_Palette _palette = (ls_Palette)doc["palette"].as<int>();
           ledstrip.ledpalette = _palette;
+        }
+        if (doc.containsKey("bpm")) {
           uint8_t _bpm = doc["bpm"].as<int>();
           ledstrip.bpm = _bpm;
-          JsonObject _hsv = doc["hsv"];
-          double hue = _hsv["h"];
-          double saturation = _hsv["s"];
-          double value = _hsv["v"];
-          ledstrip.updateHsv(hue, saturation, value);
-
-          json_correct = true;
         }
+        if (doc.containsKey("rgb")) {
+          JsonObject _rgb = doc["rgb"];
+          double r = _rgb["r"];
+          double g = _rgb["g"];
+          double b = _rgb["b"];
+          ledstrip.setHsv(r, g, b);
+        }
+
+        json_correct = true;
 
         configFile.close();
 
@@ -352,11 +355,11 @@ bool LedController::saveConfig () {
   doc["ledCount"] = ledstrip.getLeds();
   doc["ledMode"] = ledstrip.ledMode;
   doc["palette"] = (uint8_t)ledstrip.ledpalette;
-  JsonObject hsv_r = doc.createNestedObject("hsv");
-  hsv_r["h"] = ledstrip.hue;
-  hsv_r["s"] = ledstrip.saturation;
-  hsv_r["v"] = ledstrip.value;
-  // doc["bpm"] = ledstrip.bpm;
+  JsonObject rgb = doc.createNestedObject("rgb");
+  rgb["r"] = ledstrip.rgb_r;
+  rgb["g"] = ledstrip.rgb_g;
+  rgb["b"] = ledstrip.rgb_b;
+  doc["bpm"] = ledstrip.bpm;
 
 	// char gwAddress[ENIGMAIOT_ADDR_LEN * 3];
   // doc["address"] = mac2str (enigmaIotNode->getNode()->getMacAddress(), gwAddress);

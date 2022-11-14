@@ -63,18 +63,17 @@ void LedStripConfig::writeRgb(uint8_t r, uint8_t g, uint8_t b) {
   fill_solid(ledcontroller->leds(), _leds, color);
 }
 
+void LedStripConfig::writeHsv(double h, double s, double v) {
+  ColorConverter::HsvToRgb(h, s, v, rgb_r, rgb_g, rgb_b);
+  writeRgb(rgb_r, rgb_g, rgb_b);
+}
+
 void LedStripConfig::setRgb(uint8_t r, uint8_t g, uint8_t b) {
   if (ledMode != LS_SOLID) setStatus(LS_SOLID);
   rgb_r = r;
   rgb_g = g;
   rgb_b = b;
   ColorConverter::RgbToHsv(rgb_r, rgb_g, rgb_b, hue, saturation, value);
-  writeRgb(rgb_r, rgb_g, rgb_b);
-}
-
-void LedStripConfig::writeHsv(double h, double s, double v) {
-  ColorConverter::HsvToRgb(h, s, v, rgb_r, rgb_g, rgb_b);
-  writeRgb(rgb_r, rgb_g, rgb_b);
 }
 
 void LedStripConfig::setHsv(double h, double s, double v) {
@@ -82,15 +81,17 @@ void LedStripConfig::setHsv(double h, double s, double v) {
   hue = h;
   saturation = s;
   value = v;
-  ColorConverter::HsvToRgb(hue, saturation, value, rgb_r, rgb_g, rgb_b);
-  writeRgb(rgb_r, rgb_g, rgb_b);
+  ColorConverter::HsvToRgb(h, s, v, rgb_r, rgb_g, rgb_b);
 }
 
-void LedStripConfig::updateHsv(double h, double s, double v) {
-  hue = h;
-  saturation = s;
-  value = v;
-}
+// void LedStripConfig::updateHsv(double h, double s, double v) {
+//   if (ledMode != LS_SOLID) setStatus(LS_SOLID);
+//   hue = h;
+//   saturation = s;
+//   value = v;
+//   ColorConverter::HsvToRgb(hue, saturation, value, rgb_r, rgb_g, rgb_b);
+//   writeRgb(rgb_r, rgb_g, rgb_b);
+// }
 
 double LedStripConfig::getCurrentStep(double multiplier) {
   uint16_t msperbeat = 1000.0 / ((bpm * multiplier) / 60.0);

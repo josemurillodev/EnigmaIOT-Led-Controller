@@ -50,9 +50,9 @@ class LedStripConfig {
     void update(time_t time);
     void setRgb(uint8_t r, uint8_t g, uint8_t b);
     void writeRgb(uint8_t r, uint8_t g, uint8_t b);
-    void setHsv(double h, double s, double v);
+    // void updateHsv(double h, double s, double v);
     void writeHsv(double h, double s, double v);
-    void updateHsv(double h, double s, double v);
+    void setHsv(double h, double s, double v);
     double getCurrentStep(double multiplier = 1.0);
     void setStatus(ls_Modes status);
     void setStatus(ls_Modes status, time_t time);
