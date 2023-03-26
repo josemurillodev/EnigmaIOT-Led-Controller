@@ -227,6 +227,11 @@ void LedController::loop () {
 	static time_t clock;
 	clock = EnigmaIOTNode.clock ();
 
+  if (EnigmaIOTNode.getOTArunning()) {
+    ledstrip.writeHsv(0, 0, 0);
+    return;
+  }
+
 	if (EnigmaIOTNode.hasClockSync () && EnigmaIOTNode.isRegistered ()) {
 		ledstrip.update(clock);
 	} else {
@@ -379,16 +384,16 @@ bool LedController::saveConfig () {
   char *output = (char *)malloc(jsonLen);
   serializeJsonPretty(doc, output, jsonLen);
 
-  DEBUG_DBG("File content:\n%s", output);
+  DEBUG_ERROR("File content:\n%s", output);
 
   free(output);
 
   configFile.flush();
-  size_t size = configFile.size();
+  // size_t size = configFile.size();
 
   // configFile.write ((uint8_t*)(&mqttgw_config), sizeof (mqttgw_config));
   configFile.close();
-  DEBUG_DBG("Smart Switch controller configuration saved to flash. %u bytes", size);
+  // DEBUG_DBG("Smart Switch controller configuration saved to flash. %u bytes", size);
 
   return true;
 }

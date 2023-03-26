@@ -63,9 +63,9 @@ class LedStripConfig {
     ls_Modes ledMode = LS_SOLID;
     ls_Palette ledpalette = LP_OCEAN;
     uint8_t bpm = 120;
-    double hue = 0.5;
-    double saturation = 1;
-    double value = 0.8;
+    double hue = 0.0;
+    double saturation = 0;
+    double value = 0.5;
     uint8_t rgb_r;
     uint8_t rgb_g;
     uint8_t rgb_b;
