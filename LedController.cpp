@@ -127,6 +127,12 @@ bool LedController::processRxCommand (const uint8_t* address, const uint8_t* buf
         ledstrip.isOn = _isOn;
         break;
       }
+      case SE_TYPE_REVERSE: {
+        bool _reverse = doc["reverse"];
+        DEBUG_WARN("SE_TYPE_REVERSE, %s", _reverse ? "true" : "false");
+        ledstrip.reverse = _reverse;
+        break;
+      }
       case SE_TYPE_CONFIG: {
         DEBUG_WARN("SE_TYPE_CONFIG");
         if (doc.containsKey ("ledCount")) {
@@ -168,7 +174,7 @@ bool LedController::processRxCommand (const uint8_t* address, const uint8_t* buf
 // TODO: send state array
 
 bool LedController::sendLedStatus () {
-	const size_t capacity = JSON_OBJECT_SIZE (14);
+	const size_t capacity = JSON_OBJECT_SIZE (15);
 	DynamicJsonDocument json (capacity);
   json["name"] = enigmaIotNode->getNode()->getNodeName();
   json["ledCount"] = ledstrip.getLeds();
@@ -181,6 +187,7 @@ bool LedController::sendLedStatus () {
   rgb["b"] = ledstrip.rgb_b;
 
   json["isOn"] = ledstrip.isOn;
+  json["reverse"] = ledstrip.reverse;
   json["device"] = CONTROLLER_NAME;
 
 	char gwAddress[ENIGMAIOT_ADDR_LEN * 3];
@@ -224,19 +231,21 @@ void LedController::setup (EnigmaIOTNodeClass* node, void* data) {
 }
 
 void LedController::loop () {
-	static time_t clock;
-	clock = EnigmaIOTNode.clock ();
+	// static time_t clock;
+	// clock = EnigmaIOTNode.clock ();
 
   if (EnigmaIOTNode.getOTArunning()) {
     ledstrip.writeHsv(0, 0, 0);
     return;
   }
 
-	if (EnigmaIOTNode.hasClockSync () && EnigmaIOTNode.isRegistered ()) {
-		ledstrip.update(clock);
-	} else {
-		ledstrip.update(millis());
-	}
+  ledstrip.update(get_millisecond_timer());
+
+	// if (EnigmaIOTNode.hasClockSync () && EnigmaIOTNode.isRegistered ()) {
+	// 	ledstrip.update(clock);
+	// } else {
+	// 	ledstrip.update(millis());
+	// }
 	// If your node stays allways awake do your periodic task here
 	// digitalWrite (LED_PIN, led);
 }

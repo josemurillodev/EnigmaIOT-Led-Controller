@@ -189,3 +189,13 @@ void loop () {
 #endif // SUPPORT_HA_DISCOVERY 
     EnigmaIOTNode.handle (); // Mantain EnigmaIOT connection
 }
+
+uint32_t get_millisecond_timer() {
+	static time_t clock;
+	clock = EnigmaIOTNode.clock ();
+	if (EnigmaIOTNode.hasClockSync () && EnigmaIOTNode.isRegistered ()) {
+		return clock;
+	} else {
+		return millis();
+	}
+}

@@ -39,7 +39,8 @@ enum LED_CONTROLLER_EVENT {
   SE_TYPE_TOGGLE = 5,
   SE_TYPE_INFO = 6,
   SE_TYPE_CONFIG = 7,
-  SE_TYPE_RESET = 8
+  SE_TYPE_RESET = 8,
+  SE_TYPE_REVERSE = 9
 };
 
 class LedController : EnigmaIOTjsonController {

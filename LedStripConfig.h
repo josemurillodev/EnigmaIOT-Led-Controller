@@ -25,7 +25,7 @@ enum ls_Modes {
   // LS_PLASMA = 14,
   LS_RIPPLE = 15,
   // LS_CYLON = 16,
-  // LS_DISCOBALL = 17,
+  LS_DISCOBALL = 17,
   // LS_CHESS = 18,
   // LS_WIZARD = 19,
   // LS_FLASH = 20,
@@ -58,8 +58,10 @@ class LedStripConfig {
     void setStatus(ls_Modes status, time_t time);
     void syncTime(time_t time);
     void setLeds(uint16_t count);
+    void setReverse(bool rev);
     uint16_t getLeds();
     bool isOn = true;
+    bool reverse = false;
     ls_Modes ledMode = LS_SOLID;
     ls_Palette ledpalette = LP_OCEAN;
     uint8_t bpm = 120;
@@ -82,7 +84,7 @@ class LedStripConfig {
     void sparkles();
     // void cylon();
     // void chess();
-    // void discoBall();
+    void discoBall();
     // void wizard();
     void waveAnim(ls_Palette pindex);
     void heartBeat(ls_Palette pindex);
@@ -121,8 +123,8 @@ class LedStripConfig {
     //     { 0x000208, 0x00030E, 0x000514, 0x00061A, 0x000820, 0x000927, 0x000B2D, 0x000C33, 
     //       0x000E39, 0x001040, 0x001450, 0x001860, 0x001C70, 0x002080, 0x1040BF, 0x2060FF };
 
-    // CRGBPalette16 currentPalette;
-    // CRGBPalette16 targetPalette;
+    CRGBPalette16 currentPalette;
+    CRGBPalette16 targetPalette;
     // TBlendType    currentBlending = LINEARBLEND;
 };
 

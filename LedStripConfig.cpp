@@ -101,6 +101,10 @@ double LedStripConfig::getCurrentStep(double multiplier) {
   return sin(radians);
 }
 
+void LedStripConfig::setReverse(bool rev) {
+  reverse = rev;
+}
+
 void LedStripConfig::setLeds(uint16_t count) {
   if (count <= NUM_LEDS) {
     _leds = count;
@@ -160,7 +164,7 @@ void LedStripConfig::update(time_t time) {
     // else if (ledMode == LS_PLASMA) { plasma(ledpalette); }
     // else if (ledMode == LS_PRIDE) { pride(); }
     // else if (ledMode == LS_CYLON) { cylon(); }
-    // else if (ledMode == LS_DISCOBALL) { discoBall(); }
+    else if (ledMode == LS_DISCOBALL) { discoBall(); }
     // else if (ledMode == LS_WIZARD) { wizard(); }
     // else if (ledMode == LS_CHESS) { chess(); }
     // else if (ledMode == LS_FLASH) { flash(ledpalette); }
@@ -209,12 +213,15 @@ void LedStripConfig::setStatus(ls_Modes s, int64_t time) {
 void LedStripConfig::gradient(){ 
   uint8_t starthue = 128.0 + 128 * getCurrentStep(0.1);
   uint8_t endhue = 128.0 + 128 * getCurrentStep(0.06);
+  
+  uint8_t start = reverse ? endhue : starthue;
+  uint8_t end = reverse ? starthue : endhue;
 
-  if (starthue < endhue){
+  if (start < end){
     // If we don't have this, the colour fill will flip around.
-    fill_gradient(leds, _leds, CHSV(starthue,255,value * 255), CHSV(endhue,255,value * 255), FORWARD_HUES);
+    fill_gradient(leds, _leds, CHSV(start,255,value * 255), CHSV(end,255,value * 255), FORWARD_HUES);
   } else{
-    fill_gradient(leds, _leds, CHSV(starthue,255,value * 255), CHSV(endhue,255,value * 255), BACKWARD_HUES);
+    fill_gradient(leds, _leds, CHSV(start,255,value * 255), CHSV(end,255,value * 255), BACKWARD_HUES);
   }
 }
 
@@ -237,7 +244,8 @@ void LedStripConfig::waveAnim(ls_Palette pindex) {
   uint16_t msperbeat = 1000.0 / (bpm / 60.0);
   uint8_t beat = map(_globaltime % msperbeat, 0, msperbeat, 0, 255);
   for(int i = 0; i < _leds; i++){
-    uint8_t step = beat + (i * 10);
+    int index = reverse ? _leds - i : i;
+    uint8_t step = beat + (index * 10);
     leds[i] = ColorFromPalette(paletteArray[pindex], step, value * 255, LINEARBLEND);
   }
 }
@@ -245,7 +253,8 @@ void LedStripConfig::waveAnim(ls_Palette pindex) {
 void LedStripConfig::heartBeat(ls_Palette pindex){
   uint8_t beat = 128.0 + 128 * getCurrentStep(0.5);
   for(int i = 0; i < _leds; i++){
-    uint8_t colorIndex = beat + (i * 10);
+    int index = reverse ? _leds - i : i;
+    uint8_t colorIndex = beat + (index * 10);
     leds[i] = ColorFromPalette(paletteArray[pindex], colorIndex, value * 255);
   }
 }
@@ -391,10 +400,10 @@ void LedStripConfig::ripple(ls_Palette pindex) {
 //   int thisPhase = getCurrentStep(0.1) * 64.0;
 //   int thatPhase = getCurrentStep(0.09) * 64.0;
 
-//   for (int k=0; k<_leds; k++) {
-//     int colorIndex = cubicwave8((k*23)+thisPhase)/2 + cos8((k*15)+thatPhase)/2;
+//   for (int i=0; i<_leds; i++) {
+//     int colorIndex = cubicwave8((i*23)+thisPhase)/2 + cos8((i*15)+thatPhase)/2;
 //     int thisBright = qsuba(colorIndex, beatsin8(7,0,96));
-//     leds[k] = ColorFromPalette(paletteArray[pindex], colorIndex, thisBright * value, LINEARBLEND);
+//     leds[i] = ColorFromPalette(paletteArray[pindex], colorIndex, thisBright * value, LINEARBLEND);
 //   }
 // }
 
@@ -407,50 +416,50 @@ void LedStripConfig::ripple(ls_Palette pindex) {
 
 // }
 
-// void LedStripConfig::discoBall(){
-//   uint8_t step = _globaltime / 1000; 
+void LedStripConfig::discoBall(){
+  uint8_t step = _globaltime / 1000; 
 
-//   uint8_t secondHand = step % 60;
-//   static uint8_t lastSecond = 99;
-//   static int wave1=0;                    // Current phase is calculated.
-//   static int wave2=0;
-//   static int wave3=0;
+  uint8_t secondHand = step % 60;
+  static uint8_t lastSecond = 99;
+  static int wave1=0;                    // Current phase is calculated.
+  static int wave2=0;
+  static int wave3=0;
 
-//   if(lastSecond != secondHand){
-//     lastSecond = secondHand;
-//     CRGB p = CHSV(HUE_PURPLE, 255, 255);
-//     CRGB g = CHSV(HUE_GREEN, 255, 255);
-//     CRGB u = CHSV(HUE_BLUE, 255, 255);
-//     CRGB b = CRGB::Black;
-//     CRGB w = CRGB::White;
+  if(lastSecond != secondHand){
+    lastSecond = secondHand;
+    CRGB p = CHSV(HUE_PURPLE, 255, 255);
+    CRGB g = CHSV(HUE_GREEN, 255, 255);
+    CRGB u = CHSV(HUE_BLUE, 255, 255);
+    CRGB b = CRGB::Black;
+    CRGB w = CRGB::White;
 
-//     switch(secondHand){
-//       case  0: targetPalette = RainbowColors_p; break;
-//       case  5: targetPalette = CRGBPalette16(u,u,b,b, p,p,b,b, u,u,b,b, p,p,b,b); break;
-//       case 10: targetPalette = OceanColors_p; break;
-//       case 15: targetPalette = CloudColors_p; break;
-//       case 20: targetPalette = LavaColors_p; break;
-//       case 25: targetPalette = ForestColors_p; break;
-//       case 30: targetPalette = PartyColors_p; break;
-//       case 35: targetPalette = CRGBPalette16(b,b,b,w, b,b,b,w, b,b,b,w, b,b,b,w); break;
-//       case 40: targetPalette = CRGBPalette16(u,u,u,w, u,u,u,w, u,u,u,w, u,u,u,w); break;
-//       case 45: targetPalette = CRGBPalette16(u,p,u,w, p,u,u,w, u,g,u,w, u,p,u,w); break;
-//       case 50: targetPalette = CloudColors_p; break;
-//       case 55: targetPalette = CRGBPalette16(u,u,u,w, u,u,p,p, u,p,p,p, u,p,p,w); break;
-//       case 60: break;
-//     }
-//   }
+    switch(secondHand){
+      case  0: targetPalette = RainbowColors_p; break;
+      case  5: targetPalette = CRGBPalette16(u,u,b,b, p,p,b,b, u,u,b,b, p,p,b,b); break;
+      case 10: targetPalette = OceanColors_p; break;
+      case 15: targetPalette = CloudColors_p; break;
+      case 20: targetPalette = LavaColors_p; break;
+      case 25: targetPalette = ForestColors_p; break;
+      case 30: targetPalette = PartyColors_p; break;
+      case 35: targetPalette = CRGBPalette16(b,b,b,w, b,b,b,w, b,b,b,w, b,b,b,w); break;
+      case 40: targetPalette = CRGBPalette16(u,u,u,w, u,u,u,w, u,u,u,w, u,u,u,w); break;
+      case 45: targetPalette = CRGBPalette16(u,p,u,w, p,u,u,w, u,g,u,w, u,p,u,w); break;
+      case 50: targetPalette = CloudColors_p; break;
+      case 55: targetPalette = CRGBPalette16(u,u,u,w, u,u,p,p, u,p,p,p, u,p,p,w); break;
+      case 60: break;
+    }
+  }
 
-//   nblendPaletteTowardPalette(currentPaletteBlack, targetPalette, 24);
-//   wave1 += beatsin8(10,-4,4);
-//   wave2 += beatsin8(15,-2,2);
-//   wave3 += beatsin8(12,-3,3);
+  nblendPaletteTowardPalette(currentPaletteBlack, targetPalette, 24);
+  wave1 += beatsin8(10,-4,4);
+  wave2 += beatsin8(15,-2,2);
+  wave3 += beatsin8(12,-3,3);
 
-//   for(int k=0; k<_leds; k++){
-//       uint8_t tmp = sin8(7*k + wave1) + sin8(7*k + wave2) + sin8(7*k + wave3);
-//       leds[k] = ColorFromPalette(currentPaletteBlack, tmp, value * 255);
-//   }
-// }
+  for(int k=0; k<_leds; k++){
+      uint8_t tmp = sin8(7*k + wave1) + sin8(7*k + wave2) + sin8(7*k + wave3);
+      leds[k] = ColorFromPalette(currentPaletteBlack, tmp, value * 255);
+  }
+}
 
 // void LedStripConfig::wizard(){
 //   fadeToBlackBy(leds, _leds, 20);
