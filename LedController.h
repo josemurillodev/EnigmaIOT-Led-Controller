@@ -31,6 +31,7 @@ static const char* CONTROLLER_NAME = "LEDController";
 #define _LED_OFF !_LED_ON
 
 enum LED_CONTROLLER_EVENT {
+  SE_TYPE_DATA = 10,
   SE_TYPE_STATUS = 0,
   SE_TYPE_COLOR = 1,
   SE_TYPE_BPM = 2,

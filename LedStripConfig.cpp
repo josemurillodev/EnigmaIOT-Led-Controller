@@ -69,7 +69,7 @@ void LedStripConfig::writeHsv(double h, double s, double v) {
 }
 
 void LedStripConfig::setRgb(uint8_t r, uint8_t g, uint8_t b) {
-  if (ledMode != LS_SOLID) setStatus(LS_SOLID);
+  if (ledMode != LS_SOLID && ledMode != LS_BLINK) setStatus(LS_SOLID);
   rgb_r = r;
   rgb_g = g;
   rgb_b = b;
@@ -93,7 +93,7 @@ void LedStripConfig::setHsv(double h, double s, double v) {
 //   writeRgb(rgb_r, rgb_g, rgb_b);
 // }
 
-double LedStripConfig::getCurrentStep(double multiplier) {
+double LedStripConfig::getCurrentStep(float multiplier) {
   uint16_t msperbeat = 1000.0 / ((bpm * multiplier) / 60.0);
   int degrees = map(_globaltime % msperbeat, 0, msperbeat, 0, 360);
   double radians = (degrees * 71) / 4068.0;
@@ -122,7 +122,7 @@ uint16_t LedStripConfig::getLeds() {
 void LedStripConfig::update(time_t time) {
   _globaltime = time;
 	static time_t lastSensorData;
-	static const time_t SENSOR_PERIOD = 25;
+	static const time_t SENSOR_PERIOD = 60;
 	if (_globaltime - lastSensorData > SENSOR_PERIOD) {
 		lastSensorData = _globaltime;
     _deltams = _globaltime - _prevms;
@@ -161,7 +161,7 @@ void LedStripConfig::update(time_t time) {
     else if (ledMode == LS_NOISE) { noise(ledpalette); }
     else if (ledMode == LS_RIPPLE) { ripple(ledpalette); }
     // else if (ledMode == LS_FIRE) { fire(ledpalette); }
-    // else if (ledMode == LS_PLASMA) { plasma(ledpalette); }
+    else if (ledMode == LS_PLASMA) { plasma(ledpalette); }
     // else if (ledMode == LS_PRIDE) { pride(); }
     // else if (ledMode == LS_CYLON) { cylon(); }
     else if (ledMode == LS_DISCOBALL) { discoBall(); }
@@ -226,7 +226,7 @@ void LedStripConfig::gradient(){
 }
 
 void LedStripConfig::sparkles() {
-  fadeToBlackBy(leds, _leds, bpm);
+  fadeToBlackBy(leds, _leds, (int)bpm);
   int pixel = random(_leds);
   leds[pixel] = CHSV(hue * 255, saturation * 255, value * 255);
   int pixel2 = random(_leds);
@@ -305,7 +305,7 @@ void LedStripConfig::ripple(ls_Palette pindex) {
   static uint8_t colour;
   static int center = 0;
 
-  fadeToBlackBy(leds, _leds, bpm);
+  fadeToBlackBy(leds, _leds, (int)bpm);
   switch (stepRipple) {
     case -1:
       center = random(_leds);
@@ -394,18 +394,19 @@ void LedStripConfig::ripple(ls_Palette pindex) {
 //   }
 // }
 
-// void LedStripConfig::plasma(ls_Palette pindex) {
-//   // int thisPhase = beatsin8(6,-64,64);
-//   // int thatPhase = beatsin8(7,-64,64);
-//   int thisPhase = getCurrentStep(0.1) * 64.0;
-//   int thatPhase = getCurrentStep(0.09) * 64.0;
+void LedStripConfig::plasma(ls_Palette pindex) {
+  // int thisPhase = beatsin8(6,-64,64);
+  // int thatPhase = beatsin8(7,-64,64);
+  int thisPhase = getCurrentStep(0.1) * 64.0;
+  int thatPhase = getCurrentStep(0.09) * 64.0;
 
-//   for (int i=0; i<_leds; i++) {
-//     int colorIndex = cubicwave8((i*23)+thisPhase)/2 + cos8((i*15)+thatPhase)/2;
-//     int thisBright = qsuba(colorIndex, beatsin8(7,0,96));
-//     leds[i] = ColorFromPalette(paletteArray[pindex], colorIndex, thisBright * value, LINEARBLEND);
-//   }
-// }
+  for (int i=0; i<_leds; i++) {
+    int index = reverse ? _leds - i : i;
+    int colorIndex = cubicwave8((index*23)+thisPhase)/2 + cos8((index*15)+thatPhase)/2;
+    int thisBright = qsuba(colorIndex, beatsin8(7,0,96));
+    leds[index] = ColorFromPalette(paletteArray[pindex], colorIndex, thisBright * value, LINEARBLEND);
+  }
+}
 
 // void LedStripConfig::cylon() {
 //   double val = 0.5 + 0.5 * getCurrentStep(0.2);

@@ -78,8 +78,15 @@ bool LedController::processRxCommand (const uint8_t* address, const uint8_t* buf
 	// Set state
 	if (_command == nodeMessageType_t::DOWNSTREAM_DATA_SET) {
     switch (_type) {
-      case SE_TYPE_STATUS: {
-        DEBUG_WARN("SE_TYPE_STATUS");
+      case SE_TYPE_DATA: {
+        DEBUG_WARN("SE_TYPE_DATA");
+        if (doc.containsKey ("rgb")) {
+          JsonObject _rgb = doc["rgb"];
+          double r = _rgb["r"];
+          double g = _rgb["g"];
+          double b = _rgb["b"];
+          ledstrip.setRgb(r, g, b);
+        }
         if (doc.containsKey ("mode")) {
           ls_Modes _mode = (ls_Modes)doc["mode"].as<int>();
           if (ledstrip.ledMode != _mode) {
@@ -88,61 +95,33 @@ bool LedController::processRxCommand (const uint8_t* address, const uint8_t* buf
             ledstrip.setStatus(_mode, clock);
           }
         }
-        break;
-      }
-      case SE_TYPE_COLOR: {
-        DEBUG_WARN("SE_TYPE_COLOR");
-        if (doc.containsKey ("rgb")) {
-          JsonObject _rgb = doc["rgb"];
-          double r = _rgb["r"];
-          double g = _rgb["g"];
-          double b = _rgb["b"];
-          ledstrip.setRgb(r, g, b);
-        }
-        break;
-      }
-      case SE_TYPE_PALETTE: {
-        DEBUG_WARN("SE_TYPE_PALETTE");
         if (doc.containsKey ("palette")) {
           ls_Palette _palette = (ls_Palette)doc["palette"].as<int>();
           if (ledstrip.ledpalette != _palette) {
             ledstrip.ledpalette = _palette;
           }
         }
-        break;
-      }
-      case SE_TYPE_BPM: {
-        DEBUG_WARN("SE_TYPE_BPM");
         if (doc.containsKey ("bpm")) {
-          uint8_t _bpm = doc["bpm"];
+          float _bpm = doc["bpm"];
           if (ledstrip.bpm != _bpm) {
-            ledstrip.bpm = _bpm > 0 ? _bpm : ledstrip.bpm;
+            ledstrip.bpm = _bpm > 1.0f ? _bpm : ledstrip.bpm;
           }
         }
-        break;
-      }
-      case SE_TYPE_TOGGLE: {
-        DEBUG_WARN("SE_TYPE_TOGGLE");
-        bool _isOn = doc["isOn"];
-        ledstrip.isOn = _isOn;
-        break;
-      }
-      case SE_TYPE_REVERSE: {
+        if (doc.containsKey ("isOn")) {
+          bool _isOn = doc["isOn"];
+          ledstrip.isOn = _isOn;
+        }
         bool _reverse = doc["reverse"];
-        DEBUG_WARN("SE_TYPE_REVERSE, %s", _reverse ? "true" : "false");
+        DEBUG_WARN("reverse, %s", _reverse ? "true" : "false");
         ledstrip.reverse = _reverse;
-        break;
-      }
-      case SE_TYPE_CONFIG: {
-        DEBUG_WARN("SE_TYPE_CONFIG");
         if (doc.containsKey ("ledCount")) {
           uint16_t _ledCount = doc["ledCount"];
           ledstrip.setLeds(_ledCount);
-        }
-        if (saveConfig ()) {
-          DEBUG_WARN ("Config updated.");
-        } else {
-          DEBUG_ERROR ("Error saving config");
+          if (saveConfig ()) {
+            DEBUG_WARN ("Config updated.");
+          } else {
+            DEBUG_ERROR ("Error saving config");
+          }
         }
         break;
       }
@@ -174,7 +153,7 @@ bool LedController::processRxCommand (const uint8_t* address, const uint8_t* buf
 // TODO: send state array
 
 bool LedController::sendLedStatus () {
-	const size_t capacity = JSON_OBJECT_SIZE (15);
+	const size_t capacity = JSON_OBJECT_SIZE (16);
 	DynamicJsonDocument json (capacity);
   json["name"] = enigmaIotNode->getNode()->getNodeName();
   json["ledCount"] = ledstrip.getLeds();
@@ -302,7 +281,7 @@ bool LedController::loadConfig () {
           ledstrip.ledpalette = _palette;
         }
         if (doc.containsKey("bpm")) {
-          uint8_t _bpm = doc["bpm"].as<int>();
+          float _bpm = doc["bpm"].as<float>();
           ledstrip.bpm = _bpm;
         }
         if (doc.containsKey("rgb")) {

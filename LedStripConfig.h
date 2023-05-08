@@ -22,7 +22,7 @@ enum ls_Modes {
   LS_NOISE = 11,
   LS_SPARKLES = 12,
   // LS_FIRE = 13,
-  // LS_PLASMA = 14,
+  LS_PLASMA = 14,
   LS_RIPPLE = 15,
   // LS_CYLON = 16,
   LS_DISCOBALL = 17,
@@ -53,7 +53,7 @@ class LedStripConfig {
     // void updateHsv(double h, double s, double v);
     void writeHsv(double h, double s, double v);
     void setHsv(double h, double s, double v);
-    double getCurrentStep(double multiplier = 1.0);
+    double getCurrentStep(float multiplier = 1.0);
     void setStatus(ls_Modes status);
     void setStatus(ls_Modes status, time_t time);
     void syncTime(time_t time);
@@ -64,7 +64,7 @@ class LedStripConfig {
     bool reverse = false;
     ls_Modes ledMode = LS_SOLID;
     ls_Palette ledpalette = LP_OCEAN;
-    uint8_t bpm = 120;
+    float bpm = 120.0f;
     double hue = 0.0;
     double saturation = 0;
     double value = 0.5;
@@ -91,7 +91,7 @@ class LedStripConfig {
     void confetti(ls_Palette pindex);
     void noise(ls_Palette pindex);
     // void fire(ls_Palette pindex);
-    // void plasma(ls_Palette pindex);
+    void plasma(ls_Palette pindex);
     void ripple(ls_Palette pindex);
     // void flash(ls_Palette pindex);
   // else if (ledMode == LS_FIRE) { fire(ledpalette); }
