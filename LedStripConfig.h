@@ -32,14 +32,14 @@ enum ls_Modes {
   // LS_PACIFICA = 21
 };
 
-enum ls_Palette {
-  LP_OCEAN = 0,
-  LP_CLOUD = 1,
-  LP_LAVA = 2,
-  LP_FOREST = 3,
-  LP_PARTY = 4,
-  LP_HEAT = 5
-};
+// enum ls_Palette {
+//   LP_OCEAN = 0,
+//   LP_CLOUD = 1,
+//   LP_LAVA = 2,
+//   LP_FOREST = 3,
+//   LP_PARTY = 4,
+//   LP_HEAT = 5
+// };
 
 static CRGBPalette16 currentPaletteBlack(CRGB::Black);
 
@@ -63,7 +63,7 @@ class LedStripConfig {
     bool isOn = true;
     bool reverse = false;
     ls_Modes ledMode = LS_SOLID;
-    ls_Palette ledpalette = LP_OCEAN;
+    uint8_t ledpalette = 0;
     float bpm = 120.0f;
     double hue = 0.0;
     double saturation = 0;
@@ -86,14 +86,14 @@ class LedStripConfig {
     // void chess();
     void discoBall();
     // void wizard();
-    void waveAnim(ls_Palette pindex);
-    void heartBeat(ls_Palette pindex);
-    void confetti(ls_Palette pindex);
-    void noise(ls_Palette pindex);
-    // void fire(ls_Palette pindex);
-    void plasma(ls_Palette pindex);
-    void ripple(ls_Palette pindex);
-    // void flash(ls_Palette pindex);
+    void waveAnim();
+    void heartBeat(uint8_t pindex);
+    void confetti(uint8_t pindex);
+    void noise(uint8_t pindex);
+    // void fire(uint8_t pindex);
+    void plasma(uint8_t pindex);
+    void ripple(uint8_t pindex);
+    // void flash(uint8_t pindex);
   // else if (ledMode == LS_FIRE) { fire(ledpalette); }
   // else if (ledMode == LS_PLASMA) { plasma(ledpalette); }
   // else if (ledMode == LS_PRIDE) { pride(); }

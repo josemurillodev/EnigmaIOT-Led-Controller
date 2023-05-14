@@ -1,4 +1,5 @@
 #include "LedStripConfig.h"
+#include "palettes.h"
 
 // TODO: convert blink to boolean to update value
 // TODO: fix ripple, fire, noise, wizard
@@ -34,6 +35,14 @@ CRGB leds[NUM_LEDS];
 CLEDController *ledcontroller;
  
 uint32_t framedelay = 24;
+
+// DECLARE_GRADIENT_PALETTE( Muri_p);
+// DEFINE_GRADIENT_PALETTE(Muri_p) {
+//     0,   2,  1,  1,
+//    53,  18,  1,  0,
+//   104,  69, 29,  1,
+//   153, 167,135, 10,
+//   255,  46, 56,  4};
 
 static CRGBPalette16 paletteArray[6] = { OceanColors_p, CloudColors_p, LavaColors_p, ForestColors_p, PartyColors_p, HeatColors_p };
 
@@ -122,7 +131,9 @@ uint16_t LedStripConfig::getLeds() {
 void LedStripConfig::update(time_t time) {
   _globaltime = time;
 	static time_t lastSensorData;
-	static const time_t SENSOR_PERIOD = 60;
+	static const time_t SENSOR_PERIOD = 25;
+  // byte tcp[72];
+  // memcpy_P(tcp, (byte*)pgm_read_dword(&(gGradientPalettes[0])), 72);
 	if (_globaltime - lastSensorData > SENSOR_PERIOD) {
 		lastSensorData = _globaltime;
     _deltams = _globaltime - _prevms;
@@ -155,7 +166,7 @@ void LedStripConfig::update(time_t time) {
     }
     else if (ledMode == LS_GRADIENT) { gradient(); }
     else if (ledMode == LS_SPARKLES) { sparkles(); }
-    else if (ledMode == LS_WAVE) { waveAnim(ledpalette); }
+    else if (ledMode == LS_WAVE) { waveAnim(); }
     else if (ledMode == LS_HEARTHBEAT) { heartBeat(ledpalette); }
     else if (ledMode == LS_CONFETTI) { confetti(ledpalette); }
     else if (ledMode == LS_NOISE) { noise(ledpalette); }
@@ -239,27 +250,27 @@ void LedStripConfig::sparkles() {
   }
 }
 
-void LedStripConfig::waveAnim(ls_Palette pindex) {
+void LedStripConfig::waveAnim() {
   // uint8_t val = 128.0 + 128 * getCurrentStep(0.5);
   uint16_t msperbeat = 1000.0 / (bpm / 60.0);
   uint8_t beat = map(_globaltime % msperbeat, 0, msperbeat, 0, 255);
   for(int i = 0; i < _leds; i++){
     int index = reverse ? _leds - i : i;
     uint8_t step = beat + (index * 10);
-    leds[i] = ColorFromPalette(paletteArray[pindex], step, value * 255, LINEARBLEND);
+    leds[i] = ColorFromPalette(gGradientPalettes[ledpalette], step, value * 255, LINEARBLEND);
   }
 }
 
-void LedStripConfig::heartBeat(ls_Palette pindex){
+void LedStripConfig::heartBeat(uint8_t pindex){
   uint8_t beat = 128.0 + 128 * getCurrentStep(0.5);
   for(int i = 0; i < _leds; i++){
     int index = reverse ? _leds - i : i;
     uint8_t colorIndex = beat + (index * 10);
-    leds[i] = ColorFromPalette(paletteArray[pindex], colorIndex, value * 255);
+    leds[i] = ColorFromPalette(gGradientPalettes[pindex], colorIndex, value * 255);
   }
 }
 
-void LedStripConfig::confetti(ls_Palette pindex) {
+void LedStripConfig::confetti(uint8_t pindex) {
   fadeToBlackBy(leds, _leds, 10);
   int pos = random16(_leds);
   int pos2 = random16(_leds);
@@ -272,12 +283,12 @@ void LedStripConfig::confetti(ls_Palette pindex) {
 
   if (startConfetti > msperbeata) {
     startConfetti = 0;
-    leds[pos] += ColorFromPalette(paletteArray[pindex], random8(255), value*255);
+    leds[pos] += ColorFromPalette(gGradientPalettes[pindex], random8(255), value*255);
   }
 
   if (endConfetti > (msperbeata / 4)) {
     endConfetti = 0;
-    leds[pos2] += ColorFromPalette(paletteArray[pindex], random8(255), value*255);
+    leds[pos2] += ColorFromPalette(gGradientPalettes[pindex], random8(255), value*255);
   }
   startConfetti += step;
   endConfetti += step;
@@ -286,21 +297,21 @@ void LedStripConfig::confetti(ls_Palette pindex) {
 uint16_t brightnessScale = 150;
 uint16_t indexScale = 150;
 
-void LedStripConfig::noise(ls_Palette pindex) {
+void LedStripConfig::noise(uint8_t pindex) {
   // for(int i = 0; i < _leds; i++) {
   //   uint8_t index = inoise8(i*brightnessScale, _globaltime+i*indexScale) % 255;
-  //   leds[i] = ColorFromPalette(paletteArray[pindex], index, value * 255, LINEARBLEND);
+  //   leds[i] = ColorFromPalette(gGradientPalettes[pindex], index, value * 255, LINEARBLEND);
   // }
 
   for (int i = 0; i < _leds; i++) {
     uint8_t brightness = inoise8(i * brightnessScale, _globaltime / 5);
     uint8_t index = inoise8(i * indexScale, _globaltime / 10);
-    leds[i] = ColorFromPalette(paletteArray[pindex], index, value * brightness);
+    leds[i] = ColorFromPalette(gGradientPalettes[pindex], index, value * brightness);
     //leds[i] = CHSV(0, 255, brightness);
   }
 }
 
-void LedStripConfig::ripple(ls_Palette pindex) {
+void LedStripConfig::ripple(uint8_t pindex) {
   static int stepRipple = -1;
   static uint8_t colour;
   static int center = 0;
@@ -313,15 +324,15 @@ void LedStripConfig::ripple(ls_Palette pindex) {
       stepRipple = 0;
       break;
     case 0:
-      leds[center] = ColorFromPalette(paletteArray[pindex], colour, 255, LINEARBLEND);
+      leds[center] = ColorFromPalette(gGradientPalettes[pindex], colour, 255, LINEARBLEND);
       stepRipple++;
       break;
     case maxsteps:
       stepRipple = -1;
       break;
     default:
-      leds[(center + stepRipple + _leds) % _leds] += ColorFromPalette(paletteArray[pindex], colour, 255/stepRipple*2, LINEARBLEND);
-      leds[(center - stepRipple + _leds) % _leds] += ColorFromPalette(paletteArray[pindex], colour, 255/stepRipple*2, LINEARBLEND);
+      leds[(center + stepRipple + _leds) % _leds] += ColorFromPalette(gGradientPalettes[pindex], colour, 255/stepRipple*2, LINEARBLEND);
+      leds[(center - stepRipple + _leds) % _leds] += ColorFromPalette(gGradientPalettes[pindex], colour, 255/stepRipple*2, LINEARBLEND);
       stepRipple++;
       break;  
   }
@@ -358,7 +369,7 @@ void LedStripConfig::ripple(ls_Palette pindex) {
 
 // bool gReverseDirection = false;
 
-// void LedStripConfig::fire(ls_Palette pindex) {
+// void LedStripConfig::fire(uint8_t pindex) {
 //   // Array of temperature readings at each simulation cell
 //   static uint8_t heat[NUM_LEDS];
 
@@ -383,7 +394,7 @@ void LedStripConfig::ripple(ls_Palette pindex) {
 //     // Scale the heat value from 0-255 down to 0-240
 //     // for best results with color palettes.
 //     uint8_t colorindex = scale8( heat[j], 240);
-//     CRGB color = ColorFromPalette(paletteArray[pindex], colorindex);
+//     CRGB color = ColorFromPalette(gGradientPalettes[pindex], colorindex);
 //     int pixelnumber;
 //     if( gReverseDirection ) {
 //       pixelnumber = (_leds-1) - j;
@@ -394,7 +405,7 @@ void LedStripConfig::ripple(ls_Palette pindex) {
 //   }
 // }
 
-void LedStripConfig::plasma(ls_Palette pindex) {
+void LedStripConfig::plasma(uint8_t pindex) {
   // int thisPhase = beatsin8(6,-64,64);
   // int thatPhase = beatsin8(7,-64,64);
   int thisPhase = getCurrentStep(0.1) * 64.0;
@@ -404,7 +415,7 @@ void LedStripConfig::plasma(ls_Palette pindex) {
     int index = reverse ? _leds - i : i;
     int colorIndex = cubicwave8((index*23)+thisPhase)/2 + cos8((index*15)+thatPhase)/2;
     int thisBright = qsuba(colorIndex, beatsin8(7,0,96));
-    leds[index] = ColorFromPalette(paletteArray[pindex], colorIndex, thisBright * value, LINEARBLEND);
+    leds[index] = ColorFromPalette(gGradientPalettes[pindex], colorIndex, thisBright * value, LINEARBLEND);
   }
 }
 
@@ -498,7 +509,7 @@ void LedStripConfig::discoBall(){
 //   }
 // }
 
-// void LedStripConfig::flash(ls_Palette pindex){
+// void LedStripConfig::flash(uint8_t pindex){
 //   static unsigned int posFlash = 0;
 //   EVERY_N_MILLIS_I(thisTimer,100) {
 //     uint8_t timeval = beatsin8(10,1,(255 - bpm)*0.5);

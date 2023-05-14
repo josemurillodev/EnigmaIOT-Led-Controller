@@ -1,7 +1,3 @@
-// 
-// 
-// 
-
 #include <functional>
 #include "LedController.h"
 #include "LedStripConfig.h"
@@ -96,7 +92,7 @@ bool LedController::processRxCommand (const uint8_t* address, const uint8_t* buf
           }
         }
         if (doc.containsKey ("palette")) {
-          ls_Palette _palette = (ls_Palette)doc["palette"].as<int>();
+          uint8_t _palette = (uint8_t)doc["palette"].as<int>();
           if (ledstrip.ledpalette != _palette) {
             ledstrip.ledpalette = _palette;
           }
@@ -277,7 +273,7 @@ bool LedController::loadConfig () {
           ledstrip.setStatus(_mode);
         }
         if (doc.containsKey("palette")) {
-          ls_Palette _palette = (ls_Palette)doc["palette"].as<int>();
+          uint8_t _palette = (uint8_t)doc["palette"].as<int>();
           ledstrip.ledpalette = _palette;
         }
         if (doc.containsKey("bpm")) {

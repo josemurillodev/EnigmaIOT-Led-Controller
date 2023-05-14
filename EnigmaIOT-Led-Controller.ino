@@ -160,8 +160,8 @@ void setup () {
 #endif
 	{
 		EnigmaIOTNode.setNodeAddress (macAddress);
-		char macStr[ENIGMAIOT_ADDR_LEN * 3];
-		DEBUG_DBG ("Node address set to %s", mac2str (macAddress, macStr));
+		// char macStr[ENIGMAIOT_ADDR_LEN * 3];
+		// DEBUG_DBG ("Node address set to %s", mac2str (macAddress, macStr));
 	} else {
 		DEBUG_WARN ("Node address error");
 	}
