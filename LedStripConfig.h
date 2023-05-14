@@ -13,11 +13,11 @@ enum ls_Modes {
   LS_SUCCESS = 2,
   LS_INFO = 3,
   LS_ERROR = 4,
-  // LS_PRIDE = 5,
+  LS_GRADIENT = 5,
   LS_WAVE = 6,
   LS_BLINK = 7,
   LS_HEARTHBEAT = 8,
-  LS_GRADIENT = 9,
+  LS_RAINBOW = 9,
   LS_CONFETTI = 10,
   LS_NOISE = 11,
   LS_SPARKLES = 12,
@@ -79,6 +79,7 @@ class LedStripConfig {
     uint16_t _leds = 16;
     double _deltams;
     ls_Modes _prevStatus;
+    void rainbow();
     void gradient();
     // void pride();
     void sparkles();

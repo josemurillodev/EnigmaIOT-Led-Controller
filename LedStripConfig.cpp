@@ -164,6 +164,7 @@ void LedStripConfig::update(time_t time) {
       double beat = ((getCurrentStep() + 1.0) * (0.8) / (2.0)) + 0.1;
       writeHsv(hue, saturation, beat * value);
     }
+    else if (ledMode == LS_RAINBOW) { rainbow(); }
     else if (ledMode == LS_GRADIENT) { gradient(); }
     else if (ledMode == LS_SPARKLES) { sparkles(); }
     else if (ledMode == LS_WAVE) { waveAnim(); }
@@ -221,7 +222,7 @@ void LedStripConfig::setStatus(ls_Modes s, int64_t time) {
   _lastUpdated = _globaltime;
 }
 
-void LedStripConfig::gradient(){ 
+void LedStripConfig::rainbow() {
   uint8_t starthue = 128.0 + 128 * getCurrentStep(0.1);
   uint8_t endhue = 128.0 + 128 * getCurrentStep(0.06);
   
@@ -233,6 +234,15 @@ void LedStripConfig::gradient(){
     fill_gradient(leds, _leds, CHSV(start,255,value * 255), CHSV(end,255,value * 255), FORWARD_HUES);
   } else{
     fill_gradient(leds, _leds, CHSV(start,255,value * 255), CHSV(end,255,value * 255), BACKWARD_HUES);
+  }
+}
+
+void LedStripConfig::gradient(){ 
+  uint16_t counter = (_globaltime * (((int)bpm >> 4) +2)) & 0xFFFF;
+  counter = counter >> 8;
+  for(int i = 0; i < _leds; i++){
+    uint8_t index = (i * (16 << (128 / 29)) / _leds) + counter;
+    leds[i] = ColorFromPalette(gGradientPalettes[ledpalette], index, value * 255, LINEARBLEND);
   }
 }
 

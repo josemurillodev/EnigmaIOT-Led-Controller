@@ -83,6 +83,10 @@ bool LedController::processRxCommand (const uint8_t* address, const uint8_t* buf
           double b = _rgb["b"];
           ledstrip.setRgb(r, g, b);
         }
+        if (doc.containsKey("intensity")) {
+          double _value = doc["intensity"];
+          ledstrip.value = _value;
+        }
         if (doc.containsKey ("mode")) {
           ls_Modes _mode = (ls_Modes)doc["mode"].as<int>();
           if (ledstrip.ledMode != _mode) {
@@ -286,6 +290,10 @@ bool LedController::loadConfig () {
           double g = _rgb["g"];
           double b = _rgb["b"];
           ledstrip.setHsv(r, g, b);
+        }
+        if (doc.containsKey("intensity")) {
+          uint8_t _value = (uint8_t)doc["intensity"].as<int>();
+          ledstrip.value = _value;
         }
 
         json_correct = true;
