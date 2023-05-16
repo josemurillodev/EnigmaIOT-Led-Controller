@@ -164,6 +164,14 @@ void LedStripConfig::update(time_t time) {
       double beat = ((getCurrentStep() + 1.0) * (0.8) / (2.0)) + 0.1;
       writeHsv(hue, saturation, beat * value);
     }
+    else if (ledMode == LS_PALETTE) {
+      // fill_palette(leds, _leds, 0, 2, gGradientPalettes[ledpalette], 255, LINEARBLEND);
+      for(int i = 0; i < _leds; i++){
+        uint8_t index = map(reverse ? _leds - i : i, 0, _leds, 0, 255);
+        leds[i] = ColorFromPalette(gGradientPalettes[ledpalette], index);
+      }
+    }
+    else if (ledMode == LS_FLOW) { flow(); }
     else if (ledMode == LS_RAINBOW) { rainbow(); }
     else if (ledMode == LS_GRADIENT) { gradient(); }
     else if (ledMode == LS_SPARKLES) { sparkles(); }
@@ -238,11 +246,40 @@ void LedStripConfig::rainbow() {
 }
 
 void LedStripConfig::gradient(){ 
-  uint16_t counter = (_globaltime * (((int)bpm >> 4) +2)) & 0xFFFF;
+  uint16_t counter = (_globaltime * (((int)bpm >> 3) +3)) & 0xFFFF;
   counter = counter >> 8;
+  fill_solid(leds, _leds, ColorFromPalette(gGradientPalettes[ledpalette], -counter, 255, LINEARBLEND));
   for(int i = 0; i < _leds; i++){
-    uint8_t index = (i * (16 << (128 / 29)) / _leds) + counter;
+    uint8_t index = (i * (16 << (116 / 29)) / _leds) + counter;
     leds[i] = ColorFromPalette(gGradientPalettes[ledpalette], index, value * 255, LINEARBLEND);
+  }
+}
+
+void LedStripConfig::flow(){ 
+  uint16_t counter = (_globaltime * (((int)bpm >> 3) +3)) & 0xFFFF;
+  counter = counter >> 8;
+
+  uint16_t maxZones = _leds / 6; //only looks good if each zone has at least 6 LEDs
+  uint16_t zones = (10 * maxZones) >> 8;
+  if (zones & 0x01) zones++; //zones must be even
+  if (zones < 2) zones = 2;
+  uint16_t zoneLen = _leds / zones;
+  uint16_t offset = (_leds - zones * zoneLen) >> 1;
+
+  // SEGMENT.fill(SEGMENT.color_from_palette(-counter, false, true, 255));
+  fill_solid(leds, _leds, ColorFromPalette(gGradientPalettes[ledpalette], -counter, 255, LINEARBLEND));
+
+  for (int z = 0; z < zones; z++)
+  {
+    uint16_t pos = offset + z * zoneLen;
+    for (int i = 0; i < zoneLen; i++)
+    {
+      uint8_t colorIndex = (i * 255 / zoneLen) - counter;
+      uint16_t led = (z & 0x01) ? i : (zoneLen -1) -i;
+      if (reverse) led = (zoneLen -1) -led;
+      leds[pos + led] = ColorFromPalette(gGradientPalettes[ledpalette], colorIndex, 255, LINEARBLEND);
+      // SEGMENT.setPixelColor(pos + led, SEGMENT.color_from_palette(colorIndex, false, true, 255));
+    }
   }
 }
 

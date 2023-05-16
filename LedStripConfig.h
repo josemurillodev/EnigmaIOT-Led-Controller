@@ -21,10 +21,10 @@ enum ls_Modes {
   LS_CONFETTI = 10,
   LS_NOISE = 11,
   LS_SPARKLES = 12,
-  // LS_FIRE = 13,
+  LS_FLOW = 13,
   LS_PLASMA = 14,
   LS_RIPPLE = 15,
-  // LS_CYLON = 16,
+  LS_PALETTE = 16,
   LS_DISCOBALL = 17,
   // LS_CHESS = 18,
   // LS_WIZARD = 19,
@@ -79,6 +79,7 @@ class LedStripConfig {
     uint16_t _leds = 16;
     double _deltams;
     ls_Modes _prevStatus;
+    void flow();
     void rainbow();
     void gradient();
     // void pride();
