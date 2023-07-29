@@ -9,9 +9,9 @@
 #endif
 
 #define DATA_PIN    2
-#define LED_TYPE    WS2812B
-#define COLOR_ORDER GRB
-#define NUM_LEDS    300 // 300
+#define LED_TYPE    WS2811
+#define COLOR_ORDER RGB
+#define NUM_LEDS    100 // 300
 #define BRIGHTNESS  255
 
 #define qsubd(x, b)  ((x>b)?b:0)
@@ -51,7 +51,7 @@ LedStripConfig::LedStripConfig() {
 
 void LedStripConfig::initLedStrip() {
   // FastLED.setMaxPowerInMilliWatts(50000);
-  FastLED.setMaxPowerInVoltsAndMilliamps(5, 2000);
+  FastLED.setMaxPowerInVoltsAndMilliamps(12, 2000);
   // set master brightness control
   FastLED.setBrightness(BRIGHTNESS);
   // FastLED.setTemperature(Tungsten40W);
@@ -167,7 +167,7 @@ void LedStripConfig::update(time_t time) {
     else if (ledMode == LS_PALETTE) {
       // fill_palette(leds, _leds, 0, 2, gGradientPalettes[ledpalette], 255, LINEARBLEND);
       for(int i = 0; i < _leds; i++){
-        uint8_t index = map(reverse ? _leds - i : i, 0, _leds, 0, 255);
+        uint8_t index = map(reverse ? _leds - i : i, 0, _leds, 5, 250);
         leds[i] = ColorFromPalette(gGradientPalettes[ledpalette], index);
       }
     }
