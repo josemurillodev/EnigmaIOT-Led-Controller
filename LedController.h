@@ -17,7 +17,7 @@
 
 #include <EnigmaIOTjsonController.h>
 #define LedController LedController
-static const char* CONTROLLER_NAME = "LEDController";
+static const char* CONTROLLER_NAME = "WS2812b";
 
 #if SUPPORT_HA_DISCOVERY    
 #include <haSwitch.h>

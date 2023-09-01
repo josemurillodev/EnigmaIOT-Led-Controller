@@ -62,6 +62,7 @@ class LedStripConfig {
     uint16_t getLeds();
     bool isOn = true;
     bool reverse = false;
+    bool mirror = false;
     ls_Modes ledMode = LS_SOLID;
     uint8_t ledpalette = 0;
     float bpm = 120.0f;

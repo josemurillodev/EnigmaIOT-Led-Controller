@@ -167,7 +167,7 @@ void LedStripConfig::update(time_t time) {
     else if (ledMode == LS_PALETTE) {
       // fill_palette(leds, _leds, 0, 2, gGradientPalettes[ledpalette], 255, LINEARBLEND);
       for(int i = 0; i < _leds; i++){
-        uint8_t index = map(reverse ? _leds - i : i, 0, _leds, 0, 255);
+        uint8_t index = map(reverse ? _leds - i : i, 0, _leds, 5, 250);
         leds[i] = ColorFromPalette(gGradientPalettes[ledpalette], index);
       }
     }
@@ -196,6 +196,12 @@ void LedStripConfig::update(time_t time) {
       && _globaltime - _lastUpdated > 3000) {
       //  TODO: Add last status state
       setStatus(_prevStatus);
+    }
+
+    if (mirror) {
+      for (int i = 0; i < _leds / 2; i++) {
+        leds[_leds - 1 - i] = leds[i];
+      }
     }
 
     uint8_t bri = calculate_max_brightness_for_power_vmA(ledcontroller->leds(), _leds, BRIGHTNESS, 5, 5000);
