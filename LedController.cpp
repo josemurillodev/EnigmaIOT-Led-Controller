@@ -111,9 +111,15 @@ bool LedController::processRxCommand (const uint8_t* address, const uint8_t* buf
           bool _isOn = doc["isOn"];
           ledstrip.isOn = _isOn;
         }
-        bool _reverse = doc["reverse"];
-        DEBUG_WARN("reverse, %s", _reverse ? "true" : "false");
-        ledstrip.reverse = _reverse;
+        if (doc.containsKey ("reverse")) {
+          bool _reverse = doc["reverse"];
+          ledstrip.reverse = _reverse;
+        }
+        if (doc.containsKey ("mirror")) {
+          bool _mirror = doc["mirror"];
+          // DEBUG_WARN("mirror, %s", _mirror ? "true" : "false");
+          ledstrip.mirror = _mirror;
+        }
         if (doc.containsKey ("ledCount")) {
           uint16_t _ledCount = doc["ledCount"];
           ledstrip.setLeds(_ledCount);
@@ -156,6 +162,10 @@ bool LedController::sendLedStatus () {
 	const size_t capacity = JSON_OBJECT_SIZE (16);
 	DynamicJsonDocument json (capacity);
   json["name"] = enigmaIotNode->getNode()->getNodeName();
+
+	char gwAddress[ENIGMAIOT_ADDR_LEN * 3];
+  json["address"] = mac2str (enigmaIotNode->getNode()->getMacAddress(), gwAddress);
+
   json["ledCount"] = ledstrip.getLeds();
   json["ledMode"] = ledstrip.ledMode;
   json["palette"] = (uint8_t)ledstrip.ledpalette;
@@ -165,12 +175,10 @@ bool LedController::sendLedStatus () {
   rgb["g"] = ledstrip.rgb_g;
   rgb["b"] = ledstrip.rgb_b;
 
+  json["device"] = CONTROLLER_NAME;
   json["isOn"] = ledstrip.isOn;
   json["reverse"] = ledstrip.reverse;
-  json["device"] = CONTROLLER_NAME;
-
-	char gwAddress[ENIGMAIOT_ADDR_LEN * 3];
-  json["address"] = mac2str (enigmaIotNode->getNode()->getMacAddress(), gwAddress);
+  json["mirror"] = ledstrip.mirror;
 
 	return sendJson (json);
 }

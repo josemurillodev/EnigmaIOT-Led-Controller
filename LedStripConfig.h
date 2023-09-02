@@ -2,6 +2,9 @@
 #define LedStripConfig_h
 
 #define USE_GET_MILLISECOND_TIMER
+// #ifdef ESP8266
+// #define FASTLED_ALLOW_INTERRUPTS 0                            // Used for ESP8266 with WS2812 LED's. Ugh!!!
+// #endif
 
 #include <ColorConverterLib.h>
 #include <FastLED.h>
@@ -62,6 +65,7 @@ class LedStripConfig {
     uint16_t getLeds();
     bool isOn = true;
     bool reverse = false;
+    bool mirror = false;
     ls_Modes ledMode = LS_SOLID;
     uint8_t ledpalette = 0;
     float bpm = 120.0f;

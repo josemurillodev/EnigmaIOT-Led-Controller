@@ -147,19 +147,20 @@ void LedStripConfig::update(time_t time) {
     if (ledMode == LS_SOLID) {
       // double v = saturation < 0.5 && value > 0.5 ? 0.5 : value;
       writeHsv(hue, saturation, value);
-    } else if (ledMode == LS_LOADING) {
-      int val = 128.0 + 128 * getCurrentStep();
-      writeRgb(val, 0, val);
-    } else if (ledMode == LS_SUCCESS) {
-      int val = 128.0 + 128 * getCurrentStep();
-      writeRgb(0, val, 0);
-    } else if (ledMode == LS_INFO) {
-      int val = 128.0 + 128 * getCurrentStep();
-      writeRgb(0, 0, val);
-    } else if (ledMode == LS_ERROR) {
-      int val = 128.0 + 128 * getCurrentStep();
-      writeRgb(val, 0, 0);
     }
+    // else if (ledMode == LS_LOADING) {
+    //   int val = 128.0 + 128 * getCurrentStep();
+    //   writeRgb(val, 0, val);
+    // } else if (ledMode == LS_SUCCESS) {
+    //   int val = 128.0 + 128 * getCurrentStep();
+    //   writeRgb(0, val, 0);
+    // } else if (ledMode == LS_INFO) {
+    //   int val = 128.0 + 128 * getCurrentStep();
+    //   writeRgb(0, 0, val);
+    // } else if (ledMode == LS_ERROR) {
+    //   int val = 128.0 + 128 * getCurrentStep();
+    //   writeRgb(val, 0, 0);
+    // }
     else if (ledMode == LS_BLINK) {
       double beat = ((getCurrentStep() + 1.0) * (0.8) / (2.0)) + 0.1;
       writeHsv(hue, saturation, beat * value);
@@ -198,9 +199,15 @@ void LedStripConfig::update(time_t time) {
       setStatus(_prevStatus);
     }
 
-    uint8_t bri = calculate_max_brightness_for_power_vmA(ledcontroller->leds(), _leds, BRIGHTNESS, 5, 5000);
+    if (mirror && ledMode != LS_SOLID && ledMode != LS_BLINK) {
+      for (int i = 0; i < _leds / 2; i++) {
+        leds[_leds - 1 - i] = leds[i];
+      }
+    }
 
-    ledcontroller->showLeds(bri);
+    // uint8_t bri = calculate_max_brightness_for_power_vmA(ledcontroller->leds(), _leds, BRIGHTNESS, 12, 2500);
+
+    ledcontroller->showLeds(255);
   }
 }
 
