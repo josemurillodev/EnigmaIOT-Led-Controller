@@ -35,7 +35,7 @@ bool LedController::processRxCommand (const uint8_t* address, const uint8_t* buf
 	}
 
 	// Decode payload
-	DynamicJsonDocument doc (256);
+	DynamicJsonDocument doc (2048);
 	uint8_t tempBuffer[MAX_MESSAGE_LENGTH];
 
 	memcpy (tempBuffer, buffer, length);
@@ -69,55 +69,74 @@ bool LedController::processRxCommand (const uint8_t* address, const uint8_t* buf
 			}
 	}
 
-  LED_CONTROLLER_EVENT _type = (LED_CONTROLLER_EVENT)doc[commandKey].as<int>();
-
 	// Set state
 	if (_command == nodeMessageType_t::DOWNSTREAM_DATA_SET) {
+    uint16_t nodeId = enigmaIotNode->getNode()->getNodeId();
+    DEBUG_WARN("nodeId, %d", nodeId);
+    bool hasIds = doc.containsKey ("ids");
+    std::string nodeIdKey = to_string(nodeId);
+    bool isSelected = doc.containsKey (nodeIdKey);
+    if (hasIds && !isSelected) {
+      ledstrip.isOn = false;
+      return false;
+    }
+    JsonObject data = isSelected ? doc[nodeIdKey] : doc.as<JsonObject>();
+    DEBUG_WARN("NODE_SELECTED");
+    
+    LED_CONTROLLER_EVENT _type = (LED_CONTROLLER_EVENT)doc[commandKey].as<int>();
     switch (_type) {
       case SE_TYPE_DATA: {
         DEBUG_WARN("SE_TYPE_DATA");
-        if (doc.containsKey ("rgb")) {
-          JsonObject _rgb = doc["rgb"];
-          double r = _rgb["r"];
-          double g = _rgb["g"];
-          double b = _rgb["b"];
+        if (data.containsKey ("col")) {
+          JsonArray _rgb = data["col"].as<JsonArray>();
+          uint8_t r = _rgb[0].as<int>();
+          uint8_t g = _rgb[1].as<int>();
+          uint8_t b = _rgb[2].as<int>();
+          DEBUG_WARN("color, [%d, %d, %d]", r, g, b);
           ledstrip.setRgb(r, g, b);
         }
-        if (doc.containsKey("intensity")) {
-          double _value = doc["intensity"];
+        if (data.containsKey ("rgb")) {
+          JsonObject _rgb = data["rgb"];
+          uint8_t r = _rgb["r"];
+          uint8_t g = _rgb["g"];
+          uint8_t b = _rgb["b"];
+          ledstrip.setRgb(r, g, b);
+        }
+        if (data.containsKey("intensity")) {
+          double _value = data["intensity"];
           ledstrip.value = _value;
         }
-        if (doc.containsKey ("mode")) {
-          ls_Modes _mode = (ls_Modes)doc["mode"].as<int>();
-          if (ledstrip.ledMode != _mode) {
+        if (data.containsKey ("ledMode")) {
+          ls_Modes _ledMode = (ls_Modes)data["ledMode"].as<int>();
+          if (ledstrip.ledMode != _ledMode) {
             static time_t clock;
             clock = EnigmaIOTNode.clock ();
-            ledstrip.setStatus(_mode, clock);
+            ledstrip.setStatus(_ledMode, clock);
           }
         }
-        if (doc.containsKey ("palette")) {
-          uint8_t _palette = (uint8_t)doc["palette"].as<int>();
+        if (data.containsKey ("palette")) {
+          uint8_t _palette = (uint8_t)data["palette"].as<int>();
           if (ledstrip.ledpalette != _palette) {
             ledstrip.ledpalette = _palette;
           }
         }
-        if (doc.containsKey ("bpm")) {
-          float _bpm = doc["bpm"];
+        if (data.containsKey ("bpm")) {
+          float _bpm = data["bpm"];
           if (ledstrip.bpm != _bpm) {
             ledstrip.bpm = _bpm > 1.0f ? _bpm : ledstrip.bpm;
           }
         }
-        if (doc.containsKey ("isOn")) {
-          bool _isOn = doc["isOn"];
+        if (data.containsKey ("isOn")) {
+          bool _isOn = data["isOn"];
           ledstrip.isOn = _isOn;
         }
-        bool _reverse = doc["reverse"];
-        bool _mirror = doc["mirror"];
+        bool _reverse = data["reverse"];
+        bool _mirror = data["mirror"];
         DEBUG_WARN("mirror, %s", _mirror ? "true" : "false");
         ledstrip.reverse = _reverse;
         ledstrip.mirror = _mirror;
-        if (doc.containsKey ("ledCount")) {
-          uint16_t _ledCount = doc["ledCount"];
+        if (data.containsKey ("ledCount")) {
+          uint16_t _ledCount = data["ledCount"];
           ledstrip.setLeds(_ledCount);
           if (saveConfig ()) {
             DEBUG_WARN ("Config updated.");
@@ -158,14 +177,12 @@ bool LedController::sendLedStatus () {
 	const size_t capacity = JSON_OBJECT_SIZE (16);
 	DynamicJsonDocument json (capacity);
   json["name"] = enigmaIotNode->getNode()->getNodeName();
+  json["nodeId"] = enigmaIotNode->getNode()->getNodeId();
 
 	char gwAddress[ENIGMAIOT_ADDR_LEN * 3];
   json["address"] = mac2str (enigmaIotNode->getNode()->getMacAddress(), gwAddress);
 
   json["ledCount"] = ledstrip.getLeds();
-  json["ledMode"] = ledstrip.ledMode;
-  json["palette"] = (uint8_t)ledstrip.ledpalette;
-  json["bpm"] = ledstrip.bpm;
   JsonObject rgb = json.createNestedObject("rgb");
   rgb["r"] = ledstrip.rgb_r;
   rgb["g"] = ledstrip.rgb_g;
@@ -176,9 +193,12 @@ bool LedController::sendLedStatus () {
   json["reverse"] = ledstrip.reverse;
   json["mirror"] = ledstrip.mirror;
 
+  json["ledMode"] = ledstrip.ledMode;
+  json["palette"] = (uint8_t)ledstrip.ledpalette;
+  json["bpm"] = ledstrip.bpm;
+
 	return sendJson (json);
 }
-
 
 bool LedController::sendCommandResp (const char* command, bool result) {
 	// Respond to command with a result: true if successful, false if failed 
@@ -277,8 +297,8 @@ bool LedController::loadConfig () {
           ledstrip.setLeds(_ledCount);
         }
         if (doc.containsKey("ledMode")) {
-          ls_Modes _mode = (ls_Modes)doc["mode"].as<int>();
-          ledstrip.setStatus(_mode);
+          ls_Modes _ledMode = (ls_Modes)doc["ledMode"].as<int>();
+          ledstrip.setStatus(_ledMode);
         }
         if (doc.containsKey("palette")) {
           uint8_t _palette = (uint8_t)doc["palette"].as<int>();
