@@ -217,8 +217,8 @@ void LedStripConfig::syncTime(int64_t time) {
 }
 
 void LedStripConfig::setStatus(ls_Modes s) {
-  Serial.print("setStatus ");
-  Serial.println(s);
+  // Serial.print("setStatus ");
+  // Serial.println(s);
   if (isTemporal(s) && !isTemporal(ledMode)) {
     _prevStatus = ledMode;
   }
@@ -227,8 +227,8 @@ void LedStripConfig::setStatus(ls_Modes s) {
 }
 
 void LedStripConfig::setStatus(ls_Modes s, int64_t time) {
-  Serial.print("setStatus ");
-  Serial.println(s);
+  // Serial.print("setStatus ");
+  // Serial.println(s);
   if (isTemporal(s) && !isTemporal(ledMode)) {
     _prevStatus = ledMode;
   }
