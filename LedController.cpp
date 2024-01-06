@@ -106,8 +106,8 @@ bool LedController::processRxCommand (const uint8_t* address, const uint8_t* buf
           double _value = data["intensity"];
           ledstrip.value = _value;
         }
-        if (data.containsKey ("ledMode")) {
-          ls_Modes _ledMode = (ls_Modes)data["ledMode"].as<int>();
+        if (data.containsKey ("mode")) {
+          ls_Modes _ledMode = (ls_Modes)data["mode"].as<int>();
           if (ledstrip.ledMode != _ledMode) {
             static time_t clock;
             clock = EnigmaIOTNode.clock ();
